@@ -1,3 +1,4 @@
+mod commands;
 mod config;
 mod request_info;
 
@@ -41,6 +42,7 @@ async fn main() {
     // Compose the routes
     let app = Router::new()
         .merge(request_info::router())
+        .merge(commands::router())
         .route("/todos", get(todos_index).post(todos_create))
         .route("/todos/:id", patch(todos_update).delete(todos_delete))
         // Add middleware to all routes
