@@ -1,33 +1,20 @@
 use axum::{
-    error_handling::HandleErrorLayer,
-    extract::{Extension, Path, Query},
+    extract::{Extension, Path},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, patch},
+    routing::get,
     Json, Router,
 };
 
 use chrono::prelude::{Local, SecondsFormat};
 
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    sync::{Arc, RwLock},
-    time::Duration,
-    time::Instant,
-};
+use serde::Serialize;
 
-use tokio::{
-    process::Command,
-    sync::{Semaphore, SemaphorePermit},
-};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
-use tower::{BoxError, ServiceBuilder};
-use tower_http::trace::TraceLayer;
+use tokio::process::Command;
 
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use uuid::Uuid;
+use tower::ServiceBuilder;
 
 fn current_time_string() -> String {
     Local::now().to_rfc3339_opts(SecondsFormat::Nanos, true)
