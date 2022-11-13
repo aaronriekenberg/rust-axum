@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 axum = "0.5"
+getset = "0.1"
+humantime-serde = "1"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

@@ -1,3 +1,4 @@
+mod config;
 mod request_info;
 
 use axum::{
@@ -24,10 +25,16 @@ use uuid::Uuid;
 async fn main() {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "rust_axum=debug,tower_http=debug".into()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    let config_file = std::env::args()
+        .nth(1)
+        .expect("config file required as command line argument");
+
+    config::read_configuration(config_file).await;
 
     let db = Db::default();
 
@@ -55,9 +62,13 @@ async fn main() {
                 .into_inner(),
         );
 
-    let addr: SocketAddr = "127.0.0.1:3000".parse().expect("error parsing addr");
+    let addr: SocketAddr = config::instance()
+        .server_configuration()
+        .bind_address()
+        .parse()
+        .expect("error parsing addr");
 
-    tracing::debug!("listening on {}", addr);
+    tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
