@@ -70,7 +70,7 @@ impl CommandsService {
         let response = RunCommandResponse {
             now: current_time_string(),
             command_duration_ms: command_duration.as_millis(),
-            command_info: &command_info,
+            command_info,
             command_output: match command_result {
                 Err(err) => {
                     format!("error running command {}", err)
