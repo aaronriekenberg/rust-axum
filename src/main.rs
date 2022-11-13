@@ -14,16 +14,17 @@
 //! ```
 
 use axum::{
+    body::Body,
     error_handling::HandleErrorLayer,
     extract::{Extension, Path, Query},
-    http::StatusCode,
+    http::{Request, StatusCode, Version},
     response::IntoResponse,
     routing::{get, patch},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     net::SocketAddr,
     sync::{Arc, RwLock},
     time::Duration,
@@ -37,8 +38,7 @@ use uuid::Uuid;
 async fn main() {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "example_todos=debug,tower_http=debug".into()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "rust_axum=debug,tower_http=debug".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -47,6 +47,7 @@ async fn main() {
 
     // Compose the routes
     let app = Router::new()
+        .route("/request_info", get(request_info))
         .route("/todos", get(todos_index).post(todos_create))
         .route("/todos/:id", patch(todos_update).delete(todos_delete))
         // Add middleware to all routes
@@ -74,6 +75,46 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+#[derive(Debug, Serialize)]
+struct RequestInfoResponse {
+    method: String,
+    version: String,
+    request_uri: String,
+    http_headers: BTreeMap<String, String>,
+}
+
+async fn request_info(request: Request<Body>) -> impl IntoResponse {
+    tracing::info!("in request_info request = {:?}", request);
+
+    let version = match request.version() {
+        Version::HTTP_09 => "HTTP/0.9",
+        Version::HTTP_10 => "HTTP/1.0",
+        Version::HTTP_11 => "HTTP/1.1",
+        Version::HTTP_2 => "HTTP/2.0",
+        Version::HTTP_3 => "HTTP/3.0",
+        _ => "[Unknown]",
+    }
+    .to_owned();
+
+    let response = RequestInfoResponse {
+        method: request.method().as_str().to_owned(),
+        version,
+        request_uri: request.uri().to_string(),
+        http_headers: request
+            .headers()
+            .iter()
+            .map(|(key, value)| {
+                (
+                    key.as_str().to_owned(),
+                    value.to_str().unwrap_or("[Unknown]").to_owned(),
+                )
+            })
+            .collect(),
+    };
+
+    Json(response)
 }
 
 // The query parameters for todos index
