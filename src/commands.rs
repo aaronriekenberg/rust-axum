@@ -44,27 +44,25 @@ impl CommandsService {
         })
     }
 
-    async fn internal_run_command(
-        self: Arc<Self>,
-        command_info: &crate::config::CommandInfo,
-    ) -> Result<std::process::Output, std::io::Error> {
-        let output = Command::new(command_info.command())
-            .args(command_info.args())
-            .output()
-            .await?;
+    async fn run_command(self: Arc<Self>, id: &String) -> Option<RunCommandResponse> {
+        let command_info = match self.id_to_command_info.get(id).cloned() {
+            Some(command_info) => command_info,
+            None => return None,
+        };
 
-        Ok(output)
-    }
+        async fn execute_command(
+            command_info: &crate::config::CommandInfo,
+        ) -> Result<std::process::Output, std::io::Error> {
+            let output = Command::new(command_info.command())
+                .args(command_info.args())
+                .output()
+                .await?;
 
-    async fn run_command(self: Arc<Self>, id: &String) -> Result<RunCommandResponse, StatusCode> {
-        let command_info = self
-            .id_to_command_info
-            .get(id)
-            .cloned()
-            .ok_or(StatusCode::NOT_FOUND)?;
+            Ok(output)
+        }
 
         let command_start_time = Instant::now();
-        let command_result = self.internal_run_command(&command_info).await;
+        let command_result = execute_command(command_info).await;
         let command_duration = command_start_time.elapsed();
 
         let response = RunCommandResponse {
@@ -86,7 +84,7 @@ impl CommandsService {
             },
         };
 
-        Ok(response)
+        Some(response)
     }
 }
 
@@ -100,9 +98,10 @@ async fn run_command(
 ) -> Result<impl IntoResponse, StatusCode> {
     tracing::info!("in run_command id = {}", id);
 
-    let result = commands_service.run_command(&id).await?;
-
-    Ok(Json(result))
+    match commands_service.run_command(&id).await {
+        Some(result) => Ok(Json(result)),
+        None => Err(StatusCode::NOT_FOUND),
+    }
 }
 
 pub fn router() -> Router {
