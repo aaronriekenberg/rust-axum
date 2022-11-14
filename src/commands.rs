@@ -1,7 +1,7 @@
 use axum::{
     extract::{Extension, Path},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     routing::get,
     Json, Router,
 };
@@ -26,6 +26,20 @@ struct RunCommandResponse {
     command_output: String,
 }
 
+#[derive(Debug)]
+
+enum RunCommandError {
+    CommandNotFound,
+}
+
+impl IntoResponse for RunCommandError {
+    fn into_response(self) -> Response {
+        match self {
+            Self::CommandNotFound => StatusCode::NOT_FOUND.into_response(),
+        }
+    }
+}
+
 struct CommandsService {
     id_to_command_info: HashMap<String, &'static crate::config::CommandInfo>,
 }
@@ -42,10 +56,13 @@ impl CommandsService {
         })
     }
 
-    async fn run_command(self: Arc<Self>, id: &String) -> Option<RunCommandResponse> {
+    async fn run_command(
+        self: Arc<Self>,
+        id: &String,
+    ) -> Result<RunCommandResponse, RunCommandError> {
         let command_info = match self.id_to_command_info.get(id).cloned() {
             Some(command_info) => command_info,
-            None => return None,
+            None => return Err(RunCommandError::CommandNotFound),
         };
 
         async fn execute_command(
@@ -82,7 +99,7 @@ impl CommandsService {
             },
         };
 
-        Some(response)
+        Ok(response)
     }
 }
 
@@ -93,13 +110,12 @@ async fn get_all_commands() -> impl IntoResponse {
 async fn run_command(
     Path(id): Path<String>,
     Extension(commands_service): Extension<Arc<CommandsService>>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<Json<RunCommandResponse>, RunCommandError> {
     tracing::info!("in run_command id = {}", id);
 
-    match commands_service.run_command(&id).await {
-        Some(result) => Ok(Json(result)),
-        None => Err(StatusCode::NOT_FOUND),
-    }
+    let response = commands_service.run_command(&id).await?;
+
+    Ok(response.into())
 }
 
 pub fn router() -> Router {
