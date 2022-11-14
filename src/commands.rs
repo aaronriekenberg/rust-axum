@@ -14,8 +14,6 @@ use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use tokio::process::Command;
 
-use tower::ServiceBuilder;
-
 fn current_time_string() -> String {
     Local::now().to_rfc3339_opts(SecondsFormat::Nanos, true)
 }
@@ -110,9 +108,5 @@ pub fn router() -> Router {
     Router::new()
         .route("/commands", get(get_all_commands))
         .route("/commands/:id", get(run_command))
-        .layer(
-            ServiceBuilder::new()
-                .layer(Extension(commands_service))
-                .into_inner(),
-        )
+        .layer(Extension(commands_service))
 }
