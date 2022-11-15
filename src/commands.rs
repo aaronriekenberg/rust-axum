@@ -1,4 +1,5 @@
 use axum::{
+    async_trait,
     extract::{Extension, Path},
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -40,11 +41,18 @@ impl IntoResponse for RunCommandError {
     }
 }
 
-struct CommandsService {
+#[async_trait]
+trait CommandsService {
+    async fn run_command(&self, id: &str) -> Result<RunCommandResponse, RunCommandError>;
+}
+
+type DynCommandsService = Arc<dyn CommandsService + Send + Sync>;
+
+struct CommandsServiceImpl {
     id_to_command_info: HashMap<String, &'static crate::config::CommandInfo>,
 }
 
-impl CommandsService {
+impl CommandsServiceImpl {
     fn new() -> Arc<Self> {
         Arc::new(Self {
             id_to_command_info: crate::config::instance()
@@ -55,51 +63,16 @@ impl CommandsService {
                 .collect(),
         })
     }
+}
 
-    async fn run_command(
-        self: Arc<Self>,
-        id: &String,
-    ) -> Result<RunCommandResponse, RunCommandError> {
-        let command_info = match self.id_to_command_info.get(id).cloned() {
-            Some(command_info) => command_info,
-            None => return Err(RunCommandError::CommandNotFound),
-        };
-
-        async fn execute_command(
-            command_info: &crate::config::CommandInfo,
-        ) -> Result<std::process::Output, std::io::Error> {
-            let output = Command::new(command_info.command())
-                .args(command_info.args())
-                .output()
-                .await?;
-
-            Ok(output)
-        }
-
-        let command_start_time = Instant::now();
-        let command_result = execute_command(command_info).await;
-        let command_duration = command_start_time.elapsed();
-
-        let response = RunCommandResponse {
-            now: current_time_string(),
-            command_duration_ms: command_duration.as_millis(),
-            command_info,
-            command_output: match command_result {
-                Err(err) => {
-                    format!("error running command {}", err)
-                }
-                Ok(command_output) => {
-                    let mut combined_output = String::with_capacity(
-                        command_output.stderr.len() + command_output.stdout.len(),
-                    );
-                    combined_output.push_str(&String::from_utf8_lossy(&command_output.stderr));
-                    combined_output.push_str(&String::from_utf8_lossy(&command_output.stdout));
-                    combined_output
-                }
-            },
-        };
-
-        Ok(response)
+#[async_trait]
+impl CommandsService for CommandsServiceImpl {
+    async fn run_command(&self, id: &str) -> Result<RunCommandResponse, RunCommandError> {
+        let command_info = self
+            .id_to_command_info
+            .get(id)
+            .cloned()
+            .ok_or(RunCommandError::CommandNotFound)?;
     }
 }
 
@@ -109,7 +82,7 @@ async fn get_all_commands() -> impl IntoResponse {
 
 async fn run_command(
     Path(id): Path<String>,
-    Extension(commands_service): Extension<Arc<CommandsService>>,
+    Extension(commands_service): Extension<DynCommandsService>,
 ) -> Result<Json<RunCommandResponse>, RunCommandError> {
     tracing::info!("in run_command id = {}", id);
 
@@ -119,7 +92,7 @@ async fn run_command(
 }
 
 pub fn router() -> Router {
-    let commands_service = CommandsService::new();
+    let commands_service: DynCommandsService = CommandsServiceImpl::new();
 
     Router::new()
         .route("/commands", get(get_all_commands))
