@@ -1,6 +1,6 @@
 {
     "server_configuration": {
-        "bind_address": "127.0.0.1:8080"
+        "bind_address": "[::1]:8080"
     },
     "command_configuration": {
         "max_concurrent_commands": 10,
