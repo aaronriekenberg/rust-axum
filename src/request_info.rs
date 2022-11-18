@@ -19,8 +19,6 @@ struct RequestInfoResponse {
 }
 
 async fn request_info(request: Request<Body>) -> impl IntoResponse {
-    tracing::info!("in request_info request = {:?}", request);
-
     let version = match request.version() {
         Version::HTTP_09 => "HTTP/0.9",
         Version::HTTP_10 => "HTTP/1.0",
