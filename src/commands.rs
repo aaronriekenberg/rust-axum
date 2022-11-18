@@ -35,7 +35,7 @@ async fn run_command(
 }
 
 pub fn router() -> Router {
-    let commands_service: DynCommandsService = service::new_commands_service();
+    let commands_service = service::new_commands_service();
 
     Router::new()
         .route("/cgi-bin/commands", get(get_all_commands))
