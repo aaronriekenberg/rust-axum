@@ -38,7 +38,7 @@ pub fn router() -> Router {
     let commands_service: DynCommandsService = service::new_commands_service();
 
     Router::new()
-        .route("/commands", get(get_all_commands))
-        .route("/commands/:id", get(run_command))
+        .route("/cgi-bin/commands", get(get_all_commands))
+        .route("/cgi-bin/commands/:id", get(run_command))
         .layer(Extension(commands_service))
 }

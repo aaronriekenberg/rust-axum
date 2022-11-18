@@ -51,5 +51,5 @@ async fn request_info(request: Request<Body>) -> impl IntoResponse {
 }
 
 pub fn router() -> Router {
-    Router::new().route("/request_info", get(request_info))
+    Router::new().route("/cgi-bin/request_info", get(request_info))
 }
