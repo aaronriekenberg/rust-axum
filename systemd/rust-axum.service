@@ -1,0 +1,12 @@
+# ~/.config/systemd/user/rust-axum.service
+
+[Unit]
+AssertPathExists=%h/rust-axum/target/release/rust-axum
+
+[Service]
+WorkingDirectory=%h/rust-axum
+ExecStart=%h/rust-axum/target/release/rust-axum ./config/config.json
+Restart=always
+
+[Install]
+WantedBy=default.target
