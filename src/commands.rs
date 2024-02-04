@@ -10,6 +10,8 @@ use axum::{
 
 use service::{DynCommandsService, RunCommandError, RunCommandResponse};
 
+use tracing::debug;
+
 impl IntoResponse for RunCommandError {
     fn into_response(self) -> Response {
         match self {
@@ -27,7 +29,7 @@ async fn run_command(
     Path(id): Path<String>,
     Extension(commands_service): Extension<DynCommandsService>,
 ) -> Result<Json<RunCommandResponse>, RunCommandError> {
-    tracing::debug!("in run_command id = {}", id);
+    debug!("in run_command id = {}", id);
 
     let response = commands_service.run_command(&id).await?;
 
