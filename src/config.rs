@@ -1,41 +1,35 @@
-use getset::Getters;
-
 use tracing::info;
 
 use serde::{Deserialize, Serialize};
 
 use tokio::{fs::File, io::AsyncReadExt, sync::OnceCell};
 
-#[derive(Debug, Deserialize, Serialize, Getters)]
-#[getset(get = "pub")]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ServerConfiguration {
-    bind_address: String,
+    pub bind_address: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Getters)]
-#[getset(get = "pub")]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CommandInfo {
-    id: String,
-    description: String,
-    command: String,
+    pub id: String,
+    pub description: String,
+    pub command: String,
     #[serde(default)]
-    args: Vec<String>,
+    pub args: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Getters)]
-#[getset(get = "pub")]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CommandConfiguration {
-    max_concurrent_commands: usize,
+    pub max_concurrent_commands: usize,
     #[serde(with = "humantime_serde")]
-    semaphore_acquire_timeout: std::time::Duration,
-    commands: Vec<CommandInfo>,
+    pub semaphore_acquire_timeout: std::time::Duration,
+    pub commands: Vec<CommandInfo>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Getters)]
-#[getset(get = "pub")]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Configuration {
-    server_configuration: ServerConfiguration,
-    command_configuration: CommandConfiguration,
+    pub server_configuration: ServerConfiguration,
+    pub command_configuration: CommandConfiguration,
 }
 
 static CONFIGURATION_INSTANCE: OnceCell<Configuration> = OnceCell::const_new();

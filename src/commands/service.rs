@@ -38,23 +38,23 @@ pub fn new_commands_service() -> DynCommandsService {
 }
 
 struct CommandsServiceImpl {
-    id_to_command_info: HashMap<String, &'static crate::config::CommandInfo>,
+    id_to_command_info: HashMap<&'static str, &'static crate::config::CommandInfo>,
     semapore: Semaphore,
     semapore_acquire_timeout: Duration,
 }
 
 impl CommandsServiceImpl {
     fn new() -> Arc<Self> {
-        let command_configuration = crate::config::instance().command_configuration();
+        let command_configuration = &crate::config::instance().command_configuration;
 
         Arc::new(Self {
             id_to_command_info: command_configuration
-                .commands()
+                .commands
                 .iter()
-                .map(|command_config| (command_config.id().clone(), command_config))
+                .map(|command_config| (command_config.id.as_ref(), command_config))
                 .collect(),
-            semapore: Semaphore::new(*command_configuration.max_concurrent_commands()),
-            semapore_acquire_timeout: *command_configuration.semaphore_acquire_timeout(),
+            semapore: Semaphore::new(command_configuration.max_concurrent_commands),
+            semapore_acquire_timeout: command_configuration.semaphore_acquire_timeout,
         })
     }
 
@@ -72,7 +72,7 @@ impl CommandsServiceImpl {
 #[async_trait]
 impl CommandsService for CommandsServiceImpl {
     async fn run_command(&self, command_id: &str) -> Result<RunCommandResponse, RunCommandError> {
-        let command_info = *self
+        let command_info = self
             .id_to_command_info
             .get(command_id)
             .ok_or(RunCommandError::CommandNotFound)?;
@@ -80,8 +80,8 @@ impl CommandsService for CommandsServiceImpl {
         let permit = self.acquire_semaphore().await?;
 
         let command_start_time = Instant::now();
-        let command_result = Command::new(command_info.command())
-            .args(command_info.args())
+        let command_result = Command::new(&command_info.command)
+            .args(&command_info.args)
             .output()
             .await;
         let command_duration = command_start_time.elapsed();

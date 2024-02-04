@@ -49,8 +49,8 @@ async fn main() {
         );
 
     let addr: SocketAddr = config::instance()
-        .server_configuration()
-        .bind_address()
+        .server_configuration
+        .bind_address
         .parse()
         .expect("error parsing addr");
 

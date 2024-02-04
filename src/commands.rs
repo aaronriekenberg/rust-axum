@@ -22,7 +22,7 @@ impl IntoResponse for RunCommandError {
 }
 
 async fn get_all_commands() -> impl IntoResponse {
-    Json(crate::config::instance().command_configuration().commands())
+    Json(&crate::config::instance().command_configuration.commands)
 }
 
 async fn run_command(
