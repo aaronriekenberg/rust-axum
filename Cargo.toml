@@ -20,3 +20,6 @@ tower-http = { version = "0.5", features = [
     "trace",
     "request-id",
 ] }
+
+[lints.rust]
+unsafe_code = "forbid"
