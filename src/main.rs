@@ -22,10 +22,12 @@ async fn main() {
 
     config::read_configuration(config_file).await;
 
-    // Compose the routes
+    let api_routes = Router::new()
+        .nest("/request_info", request_info::router())
+        .nest("/commands", commands::router());
+
     let app = Router::new()
-        .merge(request_info::router())
-        .merge(commands::router())
+        .nest("/api/v1", api_routes)
         // Add middleware to all routes
         .layer(
             ServiceBuilder::new()
