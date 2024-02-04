@@ -4,10 +4,13 @@ mod request_info;
 
 use axum::{error_handling::HandleErrorLayer, http::StatusCode, Router};
 
-use std::{net::SocketAddr, time::Duration};
 use tower::{BoxError, ServiceBuilder};
 
 use tower_http::trace::TraceLayer;
+
+use tracing::warn;
+
+use std::{net::SocketAddr, time::Duration};
 
 #[tokio::main]
 async fn main() {
@@ -28,8 +31,10 @@ async fn main() {
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(|error: BoxError| async move {
                     if error.is::<tower::timeout::error::Elapsed>() {
+                        warn!("got tower::timeout::error::Elapsed error");
                         Ok(StatusCode::REQUEST_TIMEOUT)
                     } else {
+                        warn!("got unknown error: {}", error);
                         Err((
                             StatusCode::INTERNAL_SERVER_ERROR,
                             format!("Unhandled internal error: {}", error),
