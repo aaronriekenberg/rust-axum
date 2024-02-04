@@ -2,15 +2,30 @@ mod commands;
 mod config;
 mod request_info;
 
-use axum::{error_handling::HandleErrorLayer, http::StatusCode, Router};
+use axum::{
+    error_handling::HandleErrorLayer,
+    http::{header::HeaderName, Request, StatusCode},
+    Router,
+};
 
 use tower::{BoxError, ServiceBuilder};
 
 use tower_http::trace::TraceLayer;
 
+use tower_http::request_id::{
+    MakeRequestId, PropagateRequestIdLayer, RequestId, SetRequestIdLayer,
+};
+
 use tracing::warn;
 
-use std::{net::SocketAddr, time::Duration};
+use std::{
+    net::SocketAddr,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
 #[tokio::main]
 async fn main() {
@@ -31,6 +46,13 @@ async fn main() {
         // Add middleware to all routes
         .layer(
             ServiceBuilder::new()
+                // set `x-request-id` header on all requests
+                .layer(SetRequestIdLayer::new(
+                    X_REQUEST_ID.clone(),
+                    MyMakeRequestId::default(),
+                ))
+                // propagate `x-request-id` headers from request to response
+                .layer(PropagateRequestIdLayer::new(X_REQUEST_ID.clone()))
                 .layer(HandleErrorLayer::new(|error: BoxError| async move {
                     if error.is::<tower::timeout::error::Elapsed>() {
                         warn!("got tower::timeout::error::Elapsed error");
@@ -62,3 +84,24 @@ async fn main() {
 
     axum::serve(listener, app).await.expect("axum::serve error");
 }
+
+// A `MakeRequestId` that increments an atomic counter
+#[derive(Clone, Default)]
+struct MyMakeRequestId {
+    counter: Arc<AtomicU64>,
+}
+
+impl MakeRequestId for MyMakeRequestId {
+    fn make_request_id<B>(&mut self, _request: &Request<B>) -> Option<RequestId> {
+        let request_id = self
+            .counter
+            .fetch_add(1, Ordering::SeqCst)
+            .to_string()
+            .parse()
+            .unwrap();
+
+        Some(RequestId::new(request_id))
+    }
+}
+
+static X_REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
