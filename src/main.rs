@@ -9,16 +9,9 @@ use tower::{BoxError, ServiceBuilder};
 
 use tower_http::trace::TraceLayer;
 
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
-        ))
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    tracing_subscriber::fmt::init();
 
     let config_file = std::env::args()
         .nth(1)
@@ -55,8 +48,10 @@ async fn main() {
         .expect("error parsing addr");
 
     tracing::info!("listening on {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
-        .expect("Server.serve error");
+        .expect("TcpListener::bind error");
+
+    axum::serve(listener, app).await.expect("axum::serve error");
 }
