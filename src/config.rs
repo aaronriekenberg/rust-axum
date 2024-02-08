@@ -47,8 +47,11 @@ pub async fn read_configuration(config_file: String) {
         .await
         .expect("error reading config file");
 
+    let file_contents_string =
+        String::from_utf8(file_contents).expect("String::from_utf8 error reading config file");
+
     let configuration: Configuration =
-        ::serde_json::from_slice(&file_contents).expect("error unmarshalling config file");
+        ::toml::from_str(&file_contents_string).expect("error unmarshalling config file");
 
     info!("configuration\n{:#?}", configuration);
 
