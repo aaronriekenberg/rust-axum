@@ -1,6 +1,7 @@
 mod commands;
 mod config;
 mod request_info;
+mod version_info;
 
 use axum::{
     error_handling::HandleErrorLayer,
@@ -38,8 +39,9 @@ async fn main() {
     config::read_configuration(config_file).await;
 
     let api_routes = Router::new()
+        .nest("/commands", commands::router())
         .nest("/request_info", request_info::router())
-        .nest("/commands", commands::router());
+        .nest("/version_info", version_info::router());
 
     let app = Router::new()
         .nest("/api/v1", api_routes)
