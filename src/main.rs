@@ -77,7 +77,7 @@ async fn main() {
 
     tracing::info!("listening on {}", addr);
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+    let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("TcpListener::bind error");
 
