@@ -22,5 +22,8 @@ tower-http = { version = "0.5", features = [
     "request-id",
 ] }
 
+[build-dependencies]
+vergen = { version = "8", features = ["build", "cargo", "rustc", "si"] }
+
 [lints.rust]
 unsafe_code = "forbid"
