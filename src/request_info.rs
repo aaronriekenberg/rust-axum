@@ -11,11 +11,16 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Serialize)]
-struct RequestInfoResponse {
+struct RequestFields {
     method: String,
     version: String,
     request_uri: String,
-    http_headers: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Serialize)]
+struct RequestInfoResponse {
+    request_fields: RequestFields,
+    request_headers: BTreeMap<String, String>,
 }
 
 async fn request_info(request: Request<Body>) -> impl IntoResponse {
@@ -30,10 +35,12 @@ async fn request_info(request: Request<Body>) -> impl IntoResponse {
     .to_owned();
 
     let response = RequestInfoResponse {
-        method: request.method().as_str().to_owned(),
-        version,
-        request_uri: request.uri().to_string(),
-        http_headers: request
+        request_fields: RequestFields {
+            method: request.method().as_str().to_owned(),
+            version,
+            request_uri: request.uri().to_string(),
+        },
+        request_headers: request
             .headers()
             .iter()
             .map(|(key, value)| {
