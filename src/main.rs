@@ -4,7 +4,7 @@ mod request_info;
 
 use axum::{
     error_handling::HandleErrorLayer,
-    http::{header::HeaderName, Request, StatusCode},
+    http::{Request, StatusCode},
     Router,
 };
 
@@ -47,12 +47,9 @@ async fn main() {
         .layer(
             ServiceBuilder::new()
                 // set `x-request-id` header on all requests
-                .layer(SetRequestIdLayer::new(
-                    X_REQUEST_ID.clone(),
-                    MyMakeRequestId::default(),
-                ))
+                .layer(SetRequestIdLayer::x_request_id(MyMakeRequestId::default()))
                 // propagate `x-request-id` headers from request to response
-                .layer(PropagateRequestIdLayer::new(X_REQUEST_ID.clone()))
+                .layer(PropagateRequestIdLayer::x_request_id())
                 .layer(HandleErrorLayer::new(|error: BoxError| async move {
                     if error.is::<tower::timeout::error::Elapsed>() {
                         warn!("got tower::timeout::error::Elapsed error");
@@ -103,5 +100,3 @@ impl MakeRequestId for MyMakeRequestId {
         Some(RequestId::new(request_id))
     }
 }
-
-static X_REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
