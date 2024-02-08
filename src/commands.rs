@@ -1,7 +1,7 @@
 mod service;
 
 use axum::{
-    extract::{Extension, Path},
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
@@ -27,7 +27,7 @@ async fn get_all_commands() -> impl IntoResponse {
 
 async fn run_command(
     Path(id): Path<String>,
-    Extension(commands_service): Extension<DynCommandsService>,
+    State(commands_service): State<DynCommandsService>,
 ) -> Result<Json<RunCommandResponse>, RunCommandError> {
     debug!("in run_command id = {}", id);
 
@@ -42,5 +42,5 @@ pub fn router() -> Router {
     Router::new()
         .route("/", get(get_all_commands))
         .route("/:id", get(run_command))
-        .layer(Extension(commands_service))
+        .with_state(commands_service)
 }
