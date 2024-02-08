@@ -5,7 +5,7 @@ AssertPathExists=%h/rust-axum/target/release/rust-axum
 
 [Service]
 WorkingDirectory=%h/rust-axum
-ExecStart=%h/rust-axum/target/release/rust-axum ./config/config.json
+ExecStart=%h/rust-axum/target/release/rust-axum ./config/config.toml
 Restart=always
 
 [Install]
