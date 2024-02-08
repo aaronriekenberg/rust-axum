@@ -4,7 +4,7 @@ use chrono::prelude::{Local, SecondsFormat};
 
 use serde::Serialize;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc,process::Stdio};
 
 use tokio::{
     process::Command,
@@ -82,6 +82,8 @@ impl CommandsService for CommandsServiceImpl {
         let command_start_time = Instant::now();
         let command_result = Command::new(&command_info.command)
             .args(&command_info.args)
+            .kill_on_drop(true)
+            .stdin(Stdio::null())
             .output()
             .await;
         let command_duration = command_start_time.elapsed();
