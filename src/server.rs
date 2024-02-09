@@ -21,7 +21,10 @@ use std::{
     },
 };
 
-use crate::api::{commands, config, request_info, version_info};
+use crate::{
+    api::{commands, request_info, version_info},
+    config,
+};
 
 pub async fn run() -> anyhow::Result<()> {
     let server_configuration = &config::instance().server_configuration;
