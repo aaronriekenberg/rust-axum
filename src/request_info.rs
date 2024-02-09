@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 #[derive(Debug, Serialize)]
 struct RequestFields {
     method: String,
-    version: String,
+    version: &'static str,
     request_uri: String,
 }
 
@@ -31,8 +31,7 @@ async fn request_info(request: Request<Body>) -> impl IntoResponse {
         Version::HTTP_2 => "HTTP/2.0",
         Version::HTTP_3 => "HTTP/3.0",
         _ => "[Unknown]",
-    }
-    .to_owned();
+    };
 
     let response = RequestInfoResponse {
         request_fields: RequestFields {
