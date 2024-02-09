@@ -40,7 +40,7 @@ pub async fn run() -> anyhow::Result<()> {
         .layer(
             ServiceBuilder::new()
                 // make sure to set request ids before the request reaches `TraceLayer`
-                .set_x_request_id(MyMakeRequestId::default())
+                .set_x_request_id(CounterRequestId::default())
                 // log requests and responses
                 .layer(
                     TraceLayer::new_for_http()
@@ -73,11 +73,11 @@ pub async fn run() -> anyhow::Result<()> {
 
 // A `MakeRequestId` that increments an atomic counter
 #[derive(Clone, Default)]
-struct MyMakeRequestId {
+struct CounterRequestId {
     counter: Arc<AtomicU64>,
 }
 
-impl MakeRequestId for MyMakeRequestId {
+impl MakeRequestId for CounterRequestId {
     fn make_request_id<B>(&mut self, _request: &Request<B>) -> Option<RequestId> {
         let request_id = self
             .counter
