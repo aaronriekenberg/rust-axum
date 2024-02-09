@@ -1,18 +1,15 @@
-use axum::{
-    error_handling::HandleErrorLayer,
-    http::{Request, StatusCode},
-    Router,
+use axum::{http::Request, Router};
+
+use tower::ServiceBuilder;
+
+use tower_http::{
+    request_id::{MakeRequestId, RequestId},
+    timeout::TimeoutLayer,
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+    ServiceBuilderExt,
 };
 
-use tower::{BoxError, ServiceBuilder};
-
-use tower_http::trace::TraceLayer;
-
-use tower_http::request_id::{
-    MakeRequestId, PropagateRequestIdLayer, RequestId, SetRequestIdLayer,
-};
-
-use tracing::{info, warn};
+use tracing::info;
 
 use std::{
     net::SocketAddr,
@@ -36,24 +33,17 @@ pub async fn run() {
         // Add middleware to all routes
         .layer(
             ServiceBuilder::new()
-                // set `x-request-id` header on all requests
-                .layer(SetRequestIdLayer::x_request_id(MyMakeRequestId::default()))
-                // propagate `x-request-id` headers from request to response
-                .layer(PropagateRequestIdLayer::x_request_id())
-                .layer(HandleErrorLayer::new(|error: BoxError| async move {
-                    if error.is::<tower::timeout::error::Elapsed>() {
-                        warn!("got tower::timeout::error::Elapsed error");
-                        Ok(StatusCode::REQUEST_TIMEOUT)
-                    } else {
-                        warn!("got unknown error: {}", error);
-                        Err((
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            format!("Unhandled internal error: {}", error),
-                        ))
-                    }
-                }))
-                .timeout(Duration::from_secs(10))
-                .layer(TraceLayer::new_for_http())
+                // make sure to set request ids before the request reaches `TraceLayer`
+                .set_x_request_id(MyMakeRequestId::default())
+                // log requests and responses
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(DefaultMakeSpan::new().include_headers(true))
+                        .on_response(DefaultOnResponse::new().include_headers(true)),
+                )
+                // propagate the header to the response before the response reaches `TraceLayer`
+                .propagate_x_request_id()
+                .layer(TimeoutLayer::new(Duration::from_secs(10)))
                 .into_inner(),
         );
 
