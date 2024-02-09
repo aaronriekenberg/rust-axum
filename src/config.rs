@@ -1,4 +1,6 @@
-use tracing::info;
+use anyhow::Context;
+
+use tracing::debug;
 
 use serde::{Deserialize, Serialize};
 
@@ -34,30 +36,32 @@ pub struct Configuration {
 
 static CONFIGURATION_INSTANCE: OnceCell<Configuration> = OnceCell::const_new();
 
-pub async fn read_configuration(config_file: String) {
-    info!("reading '{}'", config_file);
+pub async fn read_configuration(config_file: String) -> anyhow::Result<()> {
+    debug!("reading '{}'", config_file);
 
     let mut file = File::open(&config_file)
         .await
-        .expect("error opening config file");
+        .with_context(|| format!("error opening '{}'", config_file))?;
 
     let mut file_contents = Vec::new();
 
     file.read_to_end(&mut file_contents)
         .await
-        .expect("error reading config file");
+        .with_context(|| format!("error reading '{}'", config_file))?;
 
-    let file_contents_string =
-        String::from_utf8(file_contents).expect("String::from_utf8 error reading config file");
+    let file_contents_string = String::from_utf8(file_contents)
+        .with_context(|| format!("String::from_utf8 error reading '{}'", config_file))?;
 
-    let configuration: Configuration =
-        ::toml::from_str(&file_contents_string).expect("error unmarshalling config file");
+    let configuration: Configuration = ::toml::from_str(&file_contents_string)
+        .with_context(|| format!("error unmarshalling '{}'", config_file))?;
 
-    info!("configuration\n{:#?}", configuration);
+    debug!("configuration\n{:#?}", configuration);
 
     CONFIGURATION_INSTANCE
         .set(configuration)
-        .expect("CONFIGURATION_INSTANCE.set error");
+        .context("CONFIGURATION_INSTANCE.set error")?;
+
+    Ok(())
 }
 
 pub fn instance() -> &'static Configuration {

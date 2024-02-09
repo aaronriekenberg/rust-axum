@@ -1,3 +1,4 @@
+use anyhow::Context;
 use axum::{http::Request, Router};
 
 use tower::ServiceBuilder;
@@ -20,7 +21,7 @@ use std::{
     time::Duration,
 };
 
-pub async fn run() {
+pub async fn run() -> anyhow::Result<()> {
     let configuration = crate::config::instance();
 
     let api_routes = Router::new()
@@ -51,15 +52,19 @@ pub async fn run() {
         .server_configuration
         .bind_address
         .parse()
-        .expect("error parsing addr");
-
-    info!("listening on {}", addr);
+        .context("error parsing bind_address")?;
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect("TcpListener::bind error");
+        .context("TcpListener::bind error")?;
 
-    axum::serve(listener, app).await.expect("axum::serve error");
+    info!("listening on {}", addr);
+
+    axum::serve(listener, app)
+        .await
+        .context("axum::serve error")?;
+
+    anyhow::bail!("axum::serve returned without error");
 }
 
 // A `MakeRequestId` that increments an atomic counter
