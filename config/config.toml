@@ -1,5 +1,6 @@
 [server_configuration]
 bind_address = "[::1]:8080"
+request_timeout = "10seconds"
 
 [command_configuration]
 max_concurrent_commands = 10

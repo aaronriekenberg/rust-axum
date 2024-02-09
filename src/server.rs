@@ -22,7 +22,7 @@ use std::{
 };
 
 pub async fn run() -> anyhow::Result<()> {
-    let configuration = crate::config::instance();
+    let server_configuration = &crate::config::instance().server_configuration;
 
     let api_routes = Router::new()
         .nest("/commands", crate::commands::router())
@@ -48,8 +48,7 @@ pub async fn run() -> anyhow::Result<()> {
                 .into_inner(),
         );
 
-    let addr: SocketAddr = configuration
-        .server_configuration
+    let addr: SocketAddr = server_configuration
         .bind_address
         .parse()
         .context("error parsing bind_address")?;

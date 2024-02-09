@@ -6,9 +6,13 @@ use serde::{Deserialize, Serialize};
 
 use tokio::{fs::File, io::AsyncReadExt, sync::OnceCell};
 
+use std::time::Duration;
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ServerConfiguration {
     pub bind_address: String,
+    #[serde(with = "humantime_serde")]
+    pub request_timeout: Duration,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -24,7 +28,7 @@ pub struct CommandInfo {
 pub struct CommandConfiguration {
     pub max_concurrent_commands: usize,
     #[serde(with = "humantime_serde")]
-    pub semaphore_acquire_timeout: std::time::Duration,
+    pub semaphore_acquire_timeout: Duration,
     pub commands: Vec<CommandInfo>,
 }
 

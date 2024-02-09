@@ -1,5 +1,6 @@
 [server_configuration]
 bind_address = "127.0.0.1:3000"
+request_timeout = "10seconds"
 
 [command_configuration]
 max_concurrent_commands = 1
