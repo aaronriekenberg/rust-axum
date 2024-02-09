@@ -18,7 +18,6 @@ use std::{
         atomic::{AtomicU64, Ordering},
         Arc,
     },
-    time::Duration,
 };
 
 pub async fn run() -> anyhow::Result<()> {
@@ -44,7 +43,7 @@ pub async fn run() -> anyhow::Result<()> {
                 )
                 // propagate the header to the response before the response reaches `TraceLayer`
                 .propagate_x_request_id()
-                .layer(TimeoutLayer::new(Duration::from_secs(10)))
+                .layer(TimeoutLayer::new(server_configuration.request_timeout))
                 .into_inner(),
         );
 
