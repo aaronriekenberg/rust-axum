@@ -1,5 +1,6 @@
 use axum::{
     body::Body,
+    extract::OriginalUri,
     http::{Request, Version},
     response::IntoResponse,
     routing::get,
@@ -14,7 +15,7 @@ use std::collections::BTreeMap;
 struct RequestFields {
     method: String,
     version: &'static str,
-    request_uri: String,
+    original_uri: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -23,7 +24,10 @@ struct RequestInfoResponse {
     request_headers: BTreeMap<String, String>,
 }
 
-async fn request_info(request: Request<Body>) -> impl IntoResponse {
+async fn request_info(
+    OriginalUri(original_uri): OriginalUri,
+    request: Request<Body>,
+) -> impl IntoResponse {
     let version = match request.version() {
         Version::HTTP_09 => "HTTP/0.9",
         Version::HTTP_10 => "HTTP/1.0",
@@ -37,7 +41,7 @@ async fn request_info(request: Request<Body>) -> impl IntoResponse {
         request_fields: RequestFields {
             method: request.method().as_str().to_owned(),
             version,
-            request_uri: request.uri().to_string(),
+            original_uri: original_uri.to_string(),
         },
         request_headers: request
             .headers()
