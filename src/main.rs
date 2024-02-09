@@ -1,8 +1,4 @@
-mod commands;
-mod config;
-mod request_info;
-mod server;
-mod version_info;
+mod api;
 
 use anyhow::Context;
 
@@ -13,9 +9,9 @@ async fn try_main() -> anyhow::Result<()> {
         .nth(1)
         .context("config file required as command line argument")?;
 
-    config::read_configuration(config_file).await?;
+    api::config::read_configuration(config_file).await?;
 
-    server::run().await
+    api::server::run().await
 }
 
 #[tokio::main]

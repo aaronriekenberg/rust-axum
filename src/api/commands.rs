@@ -12,6 +12,8 @@ use service::{DynCommandsService, RunCommandError, RunCommandResponse};
 
 use tracing::debug;
 
+use crate::api::config;
+
 impl IntoResponse for RunCommandError {
     fn into_response(self) -> Response {
         match self {
@@ -22,7 +24,7 @@ impl IntoResponse for RunCommandError {
 }
 
 async fn get_all_commands() -> impl IntoResponse {
-    Json(&crate::config::instance().command_configuration.commands)
+    Json(&config::instance().command_configuration.commands)
 }
 
 async fn run_command(

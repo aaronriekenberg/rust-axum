@@ -1,4 +1,5 @@
 use anyhow::Context;
+
 use axum::{http::Request, Router};
 
 use tower::ServiceBuilder;
@@ -20,13 +21,15 @@ use std::{
     },
 };
 
+use crate::api::{commands, config, request_info, version_info};
+
 pub async fn run() -> anyhow::Result<()> {
-    let server_configuration = &crate::config::instance().server_configuration;
+    let server_configuration = &config::instance().server_configuration;
 
     let api_routes = Router::new()
-        .nest("/commands", crate::commands::router())
-        .nest("/request_info", crate::request_info::router())
-        .nest("/version_info", crate::version_info::router());
+        .nest("/commands", commands::router())
+        .nest("/request_info", request_info::router())
+        .nest("/version_info", version_info::router());
 
     let app = Router::new()
         .nest("/api/v1", api_routes)

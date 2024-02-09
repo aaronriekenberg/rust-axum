@@ -12,6 +12,8 @@ use tokio::{
     time::{Duration, Instant},
 };
 
+use crate::api::config;
+
 #[async_trait]
 pub trait CommandsService {
     async fn run_command(&self, command_id: &str) -> Result<RunCommandResponse, RunCommandError>;
@@ -23,7 +25,7 @@ pub type DynCommandsService = Arc<dyn CommandsService + Send + Sync>;
 pub struct RunCommandResponse {
     now: String,
     command_duration_ms: u128,
-    command_info: &'static crate::config::CommandInfo,
+    command_info: &'static config::CommandInfo,
     command_output: String,
 }
 
@@ -38,14 +40,14 @@ pub fn new_commands_service() -> DynCommandsService {
 }
 
 struct CommandsServiceImpl {
-    id_to_command_info: HashMap<&'static str, &'static crate::config::CommandInfo>,
+    id_to_command_info: HashMap<&'static str, &'static config::CommandInfo>,
     semapore: Semaphore,
     semapore_acquire_timeout: Duration,
 }
 
 impl CommandsServiceImpl {
     fn new() -> Arc<Self> {
-        let command_configuration = &crate::config::instance().command_configuration;
+        let command_configuration = &config::instance().command_configuration;
 
         Arc::new(Self {
             id_to_command_info: command_configuration
