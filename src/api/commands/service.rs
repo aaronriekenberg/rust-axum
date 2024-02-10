@@ -12,7 +12,7 @@ use tokio::{
     time::{Duration, Instant},
 };
 
-use crate::config;
+use crate::api::config;
 
 #[async_trait]
 pub trait CommandsService {

@@ -1,6 +1,4 @@
 mod api;
-mod config;
-mod server;
 mod version;
 
 use anyhow::Context;
@@ -28,9 +26,7 @@ async fn try_main() -> anyhow::Result<()> {
         )
     })?;
 
-    crate::config::read_configuration(config_file).await?;
-
-    crate::server::run().await
+    crate::api::run(config_file).await
 }
 
 #[tokio::main]

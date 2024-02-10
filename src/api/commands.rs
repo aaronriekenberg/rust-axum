@@ -12,7 +12,7 @@ use service::{DynCommandsService, RunCommandError, RunCommandResponse};
 
 use tracing::debug;
 
-use crate::config;
+use crate::api::config;
 
 impl IntoResponse for RunCommandError {
     fn into_response(self) -> Response {
