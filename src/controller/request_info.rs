@@ -23,7 +23,7 @@ struct RequestInfoResponse {
     request_headers: BTreeMap<String, String>,
 }
 
-pub async fn request_info(
+pub async fn get_request_info(
     OriginalUri(original_uri): OriginalUri,
     request: Request<Body>,
 ) -> impl IntoResponse {

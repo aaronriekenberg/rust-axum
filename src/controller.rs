@@ -14,6 +14,6 @@ pub fn create_api_routes(commands_service: DynCommandsService) -> Router {
 
     Router::new()
         .nest("/commands", command_routes)
-        .route("/request_info", get(request_info::request_info))
-        .route("/version_info", get(version_info::version_info))
+        .route("/request_info", get(request_info::get_request_info))
+        .route("/version_info", get(version_info::get_version_info))
 }
