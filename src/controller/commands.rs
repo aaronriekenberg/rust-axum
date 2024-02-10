@@ -32,5 +32,5 @@ pub async fn run_command(
 
     let response = commands_service.run_command(&id).await?;
 
-    Ok(response.into())
+    Ok(Json(response))
 }
