@@ -1,18 +1,15 @@
-mod service;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::get,
-    Json, Router,
+    Json,
 };
 
-use service::{DynCommandsService, RunCommandError, RunCommandResponse};
+use crate::service::command_service::{DynCommandsService, RunCommandError, RunCommandResponse};
 
 use tracing::debug;
 
-use crate::api::config;
+use crate::config;
 
 impl IntoResponse for RunCommandError {
     fn into_response(self) -> Response {
@@ -23,11 +20,11 @@ impl IntoResponse for RunCommandError {
     }
 }
 
-async fn get_all_commands() -> impl IntoResponse {
+pub async fn get_all_commands() -> impl IntoResponse {
     Json(&config::instance().command_configuration.commands)
 }
 
-async fn run_command(
+pub async fn run_command(
     Path(id): Path<String>,
     State(commands_service): State<DynCommandsService>,
 ) -> Result<Json<RunCommandResponse>, RunCommandError> {
@@ -36,13 +33,4 @@ async fn run_command(
     let response = commands_service.run_command(&id).await?;
 
     Ok(response.into())
-}
-
-pub fn router() -> Router {
-    let commands_service = service::new_commands_service();
-
-    Router::new()
-        .route("/", get(get_all_commands))
-        .route("/:id", get(run_command))
-        .with_state(commands_service)
 }

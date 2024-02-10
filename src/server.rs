@@ -1,11 +1,6 @@
-pub mod commands;
-pub mod config;
-pub mod request_info;
-pub mod version_info;
-
 use anyhow::Context;
 
-use axum::{http::Request, Router};
+use axum::{http::Request, routing::get, Router};
 
 use tower::ServiceBuilder;
 
@@ -26,18 +21,35 @@ use std::{
     },
 };
 
-pub async fn run(config_file: String) -> anyhow::Result<()> {
-    config::read_configuration(config_file).await?;
+use crate::{config, controller, service};
 
+pub async fn run() -> anyhow::Result<()> {
     let server_configuration = &config::instance().server_configuration;
 
-    let api_routes = Router::new()
-        .nest("/commands", commands::router())
-        .nest("/request_info", request_info::router())
-        .nest("/version_info", version_info::router());
+    let command_service = service::command_service::new_commands_service();
+
+    // let api_routes = Router::new();
+    //     .nest("api/v1/commands", commands::router())
+    // //     .nest("/request_info", request_info::router())
+    // //     .nest("/version_info", version_info::router());
 
     let app = Router::new()
-        .nest("/api/v1", api_routes)
+        .route(
+            "/api/v1/commands",
+            get(controller::commands::get_all_commands),
+        )
+        .route(
+            "/api/v1/commands/:id",
+            get(controller::commands::run_command),
+        )
+        .route(
+            "/api/v1/request_info",
+            get(controller::request_info::request_info),
+        )
+        .route(
+            "/api/v1/version_info",
+            get(controller::version_info::version_info),
+        )
         // Add middleware to all routes
         .layer(
             ServiceBuilder::new()
@@ -53,7 +65,8 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
                 .propagate_x_request_id()
                 .layer(TimeoutLayer::new(server_configuration.request_timeout))
                 .into_inner(),
-        );
+        )
+        .with_state(command_service);
 
     let addr: SocketAddr = server_configuration
         .bind_address

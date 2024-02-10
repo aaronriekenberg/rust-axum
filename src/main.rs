@@ -1,24 +1,17 @@
-mod api;
-mod version;
+mod config;
+mod controller;
+mod server;
+mod service;
 
 use anyhow::Context;
 
-use tracing::{error, info};
-
-fn log_version_info() {
-    info!("Version Info:");
-    for (key, value) in crate::version::get_verison_info() {
-        info!("{}: {}", key, value);
-    }
-}
+use tracing::error;
 
 fn app_name() -> String {
     std::env::args().next().unwrap_or("[UNKNOWN]".to_owned())
 }
 
 async fn try_main() -> anyhow::Result<()> {
-    log_version_info();
-
     let config_file = std::env::args().nth(1).with_context(|| {
         format!(
             "config file required as command line argument: {} <config file>",
@@ -26,7 +19,9 @@ async fn try_main() -> anyhow::Result<()> {
         )
     })?;
 
-    crate::api::run(config_file).await
+    config::read_configuration(config_file).await?;
+
+    server::run().await
 }
 
 #[tokio::main]

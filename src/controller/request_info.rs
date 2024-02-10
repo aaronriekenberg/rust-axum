@@ -3,8 +3,7 @@ use axum::{
     extract::OriginalUri,
     http::{Request, Version},
     response::IntoResponse,
-    routing::get,
-    Json, Router,
+    Json,
 };
 
 use serde::Serialize;
@@ -24,7 +23,7 @@ struct RequestInfoResponse {
     request_headers: BTreeMap<String, String>,
 }
 
-async fn request_info(
+pub async fn request_info(
     OriginalUri(original_uri): OriginalUri,
     request: Request<Body>,
 ) -> impl IntoResponse {
@@ -56,8 +55,4 @@ async fn request_info(
     };
 
     Json(response)
-}
-
-pub fn router() -> Router {
-    Router::new().route("/", get(request_info))
 }
