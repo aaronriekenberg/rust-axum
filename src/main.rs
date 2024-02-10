@@ -1,6 +1,6 @@
+mod application;
 mod config;
 mod controller;
-mod server;
 mod service;
 
 use anyhow::Context;
@@ -14,7 +14,7 @@ fn log_version_info() {
     }
 }
 
-fn app_name() -> String {
+fn process_name() -> String {
     std::env::args().next().unwrap_or("[UNKNOWN]".to_owned())
 }
 
@@ -24,11 +24,11 @@ async fn try_main() -> anyhow::Result<()> {
     let config_file = std::env::args().nth(1).with_context(|| {
         format!(
             "config file required as command line argument: {} <config file>",
-            app_name(),
+            process_name(),
         )
     })?;
 
-    server::run(config_file).await
+    application::run(config_file).await
 }
 
 #[tokio::main]

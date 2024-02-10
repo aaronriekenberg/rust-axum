@@ -32,7 +32,7 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
 
     let api_routes = controller::create_api_routes(command_service);
 
-    let app = Router::new()
+    let routes = Router::new()
         .nest("/api/v1", api_routes)
         // Add middleware to all routes
         .layer(
@@ -62,7 +62,7 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
 
     info!("listening on {}", addr);
 
-    axum::serve(listener, app)
+    axum::serve(listener, routes)
         .await
         .context("axum::serve error")?;
 
