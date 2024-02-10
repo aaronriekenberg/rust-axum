@@ -16,6 +16,8 @@ use crate::config;
 
 #[async_trait]
 pub trait CommandsService {
+    fn get_all_comamnds(&self) -> Vec<&'static config::CommandInfo>;
+
     async fn run_command(&self, command_id: &str) -> Result<RunCommandResponse, RunCommandError>;
 }
 
@@ -40,6 +42,7 @@ pub fn new_commands_service() -> DynCommandsService {
 }
 
 struct CommandsServiceImpl {
+    all_command_info: Vec<&'static config::CommandInfo>,
     id_to_command_info: HashMap<&'static str, &'static config::CommandInfo>,
     semapore: Semaphore,
     semapore_acquire_timeout: Duration,
@@ -50,6 +53,7 @@ impl CommandsServiceImpl {
         let command_configuration = &config::instance().command_configuration;
 
         Arc::new(Self {
+            all_command_info: command_configuration.commands.iter().collect(),
             id_to_command_info: command_configuration
                 .commands
                 .iter()
@@ -73,6 +77,10 @@ impl CommandsServiceImpl {
 
 #[async_trait]
 impl CommandsService for CommandsServiceImpl {
+    fn get_all_comamnds(&self) -> Vec<&'static config::CommandInfo> {
+        self.all_command_info.clone()
+    }
+
     async fn run_command(&self, command_id: &str) -> Result<RunCommandResponse, RunCommandError> {
         let command_info = self
             .id_to_command_info
