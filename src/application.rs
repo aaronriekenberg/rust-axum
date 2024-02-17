@@ -2,7 +2,14 @@ use anyhow::Context;
 
 use axum::{http::Request, Router};
 
-use tower::ServiceBuilder;
+use hyper_util::{
+    rt::{TokioExecutor, TokioIo},
+    server,
+};
+
+use tokio::{net::UnixListener, task::JoinHandle};
+
+use tower::{Service, ServiceBuilder};
 
 use tower_http::{
     request_id::{MakeRequestId, RequestId},
@@ -11,10 +18,11 @@ use tower_http::{
     ServiceBuilderExt,
 };
 
-use tracing::info;
+use tracing::{debug, info, warn};
 
 use std::{
-    net::SocketAddr,
+    convert::Infallible,
+    path::PathBuf,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -51,22 +59,50 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
                 .into_inner(),
         );
 
-    let addr: SocketAddr = server_configuration
-        .bind_address
-        .parse()
-        .context("error parsing bind_address")?;
+    let path = PathBuf::from(&server_configuration.unix_socket_path);
 
-    let listener = tokio::net::TcpListener::bind(addr)
+    let remove_result = tokio::fs::remove_file(&path).await;
+    debug!("remove_result = {:?}", remove_result);
+
+    let uds = UnixListener::bind(&path).context("UnixListener::bind error")?;
+
+    info!("listening on uds path: {:?}", path);
+
+    let event_loop_task_result: JoinHandle<anyhow::Result<()>> = tokio::spawn(async move {
+        let mut make_service = routes.into_make_service();
+
+        loop {
+            let (socket, _remote_addr) = uds.accept().await.context("uds accept error")?;
+
+            let tower_service = unwrap_infallible(make_service.call(&socket).await);
+
+            tokio::spawn(async move {
+                info!("accepted socket");
+
+                let socket = TokioIo::new(socket);
+
+                let hyper_service =
+                    hyper::service::service_fn(move |request| tower_service.clone().call(request));
+
+                if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
+                    .serve_connection(socket, hyper_service)
+                    .await
+                {
+                    warn!("failed to serve connection: {err:#}");
+                }
+
+                info!("ending socket task");
+            });
+        }
+    });
+
+    let result = event_loop_task_result
         .await
-        .context("TcpListener::bind error")?;
+        .context("event_loop_task_result JoinError")?;
 
-    info!("listening on {}", addr);
+    result.context("event loop returned error")?;
 
-    axum::serve(listener, routes)
-        .await
-        .context("axum::serve error")?;
-
-    anyhow::bail!("axum::serve returned without error");
+    anyhow::bail!("event_loop_task_result returned without error");
 }
 
 // A `MakeRequestId` that increments an atomic counter
@@ -85,5 +121,12 @@ impl MakeRequestId for CounterRequestId {
             .unwrap();
 
         Some(RequestId::new(request_id))
+    }
+}
+
+fn unwrap_infallible<T>(result: Result<T, Infallible>) -> T {
+    match result {
+        Ok(value) => value,
+        Err(err) => match err {},
     }
 }

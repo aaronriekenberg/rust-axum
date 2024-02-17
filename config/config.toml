@@ -1,5 +1,5 @@
 [server_configuration]
-bind_address = "[::1]:8080"
+unix_socket_path = "/home/aaron/rust-axum/socket"
 request_timeout = "10seconds"
 
 [command_configuration]

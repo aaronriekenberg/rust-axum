@@ -1,5 +1,5 @@
 [server_configuration]
-bind_address = "127.0.0.1:3000"
+unix_socket_path = "./test"
 request_timeout = "10seconds"
 
 [command_configuration]
