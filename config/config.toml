@@ -1,5 +1,5 @@
 [server_configuration]
-unix_socket_path = "/home/aaron/rust-axum/socket"
+unix_socket_path = "/var/www/run/api/socket"
 request_timeout = "10seconds"
 
 [command_configuration]
