@@ -80,13 +80,18 @@ async fn run_server(
 
     let mut make_service = routes.into_make_service();
 
+    let mut next_connection_id = 0u64;
+
     loop {
         let (socket, _remote_addr) = uds.accept().await.context("uds accept error")?;
 
         let tower_service = unwrap_infallible(make_service.call(&socket).await);
 
+        let connection_id = next_connection_id;
+        next_connection_id += 1;
+
         tokio::spawn(async move {
-            info!("accepted socket");
+            info!("accepted socket connection_id: {connection_id}");
 
             let socket = TokioIo::new(socket);
 
@@ -100,7 +105,7 @@ async fn run_server(
                 warn!("failed to serve connection: {err:#}");
             }
 
-            info!("ending socket task");
+            info!("ending socket task connection_id {connection_id}");
         });
     }
 }
