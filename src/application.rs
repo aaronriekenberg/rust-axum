@@ -7,7 +7,7 @@ use hyper_util::{
     server,
 };
 
-use tokio::{net::UnixListener, task::JoinHandle};
+use tokio::net::UnixListener;
 
 use tower::{Service, ServiceBuilder};
 
@@ -29,7 +29,10 @@ use std::{
     },
 };
 
-use crate::{config, controller, service};
+use crate::{
+    config::{self, ServerConfiguration},
+    controller, service,
+};
 
 pub async fn run(config_file: String) -> anyhow::Result<()> {
     config::read_configuration(config_file).await?;
@@ -59,6 +62,13 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
                 .into_inner(),
         );
 
+    run_server(routes, server_configuration).await
+}
+
+async fn run_server(
+    routes: Router,
+    server_configuration: &ServerConfiguration,
+) -> anyhow::Result<()> {
     let path = PathBuf::from(&server_configuration.unix_socket_path);
 
     let remove_result = tokio::fs::remove_file(&path).await;
@@ -68,41 +78,31 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
 
     info!("listening on uds path: {:?}", path);
 
-    let event_loop_task_result: JoinHandle<anyhow::Result<()>> = tokio::spawn(async move {
-        let mut make_service = routes.into_make_service();
+    let mut make_service = routes.into_make_service();
 
-        loop {
-            let (socket, _remote_addr) = uds.accept().await.context("uds accept error")?;
+    loop {
+        let (socket, _remote_addr) = uds.accept().await.context("uds accept error")?;
 
-            let tower_service = unwrap_infallible(make_service.call(&socket).await);
+        let tower_service = unwrap_infallible(make_service.call(&socket).await);
 
-            tokio::spawn(async move {
-                info!("accepted socket");
+        tokio::spawn(async move {
+            info!("accepted socket");
 
-                let socket = TokioIo::new(socket);
+            let socket = TokioIo::new(socket);
 
-                let hyper_service =
-                    hyper::service::service_fn(move |request| tower_service.clone().call(request));
+            let hyper_service =
+                hyper::service::service_fn(move |request| tower_service.clone().call(request));
 
-                if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
-                    .serve_connection(socket, hyper_service)
-                    .await
-                {
-                    warn!("failed to serve connection: {err:#}");
-                }
+            if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
+                .serve_connection(socket, hyper_service)
+                .await
+            {
+                warn!("failed to serve connection: {err:#}");
+            }
 
-                info!("ending socket task");
-            });
-        }
-    });
-
-    let result = event_loop_task_result
-        .await
-        .context("event_loop_task_result JoinError")?;
-
-    result.context("event loop returned error")?;
-
-    anyhow::bail!("event_loop_task_result returned without error");
+            info!("ending socket task");
+        });
+    }
 }
 
 // A `MakeRequestId` that increments an atomic counter
