@@ -7,8 +7,11 @@ use serde::Serialize;
 
 use std::collections::BTreeMap;
 
+use crate::connection::ConnectionInfo;
+
 #[derive(Debug, Serialize)]
 struct RequestFields {
+    connection_id: u64,
     method: String,
     version: &'static str,
     original_uri: String,
@@ -20,7 +23,11 @@ pub struct RequestInfoResponse {
     request_headers: BTreeMap<String, String>,
 }
 
-pub fn get_request_info(original_uri: Uri, request: Request<Body>) -> RequestInfoResponse {
+pub fn get_request_info(
+    connection_info: ConnectionInfo,
+    original_uri: Uri,
+    request: Request<Body>,
+) -> RequestInfoResponse {
     let version = match request.version() {
         Version::HTTP_09 => "HTTP/0.9",
         Version::HTTP_10 => "HTTP/1.0",
@@ -32,6 +39,7 @@ pub fn get_request_info(original_uri: Uri, request: Request<Body>) -> RequestInf
 
     RequestInfoResponse {
         request_fields: RequestFields {
+            connection_id: connection_info.connection_id,
             method: request.method().as_str().to_owned(),
             version,
             original_uri: original_uri.to_string(),

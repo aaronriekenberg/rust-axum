@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-use axum::{http::Request, Router};
+use axum::Router;
 
 use hyper_util::{
     rt::{TokioExecutor, TokioIo},
@@ -12,7 +12,6 @@ use tokio::net::UnixListener;
 use tower::{Service, ServiceBuilder};
 
 use tower_http::{
-    request_id::{MakeRequestId, RequestId},
     timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
     ServiceBuilderExt,
@@ -20,18 +19,14 @@ use tower_http::{
 
 use tracing::{debug, info, warn};
 
-use std::{
-    convert::Infallible,
-    path::PathBuf,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
-};
+use std::{convert::Infallible, path::PathBuf};
 
 use crate::{
     config::{self, ServerConfiguration},
-    controller, service,
+    connection::ConnectionInfo,
+    controller,
+    request::CounterRequestId,
+    service,
 };
 
 pub async fn run(config_file: String) -> anyhow::Result<()> {
@@ -78,20 +73,15 @@ async fn run_server(
 
     info!("listening on uds path: {:?}", path);
 
-    let mut make_service = routes.into_make_service();
-
-    let mut next_connection_id = 0u64;
+    let mut make_service = routes.into_make_service_with_connect_info::<ConnectionInfo>();
 
     loop {
         let (socket, _remote_addr) = uds.accept().await.context("uds accept error")?;
 
         let tower_service = unwrap_infallible(make_service.call(&socket).await);
 
-        let connection_id = next_connection_id;
-        next_connection_id += 1;
-
         tokio::spawn(async move {
-            info!("accepted socket connection_id: {connection_id}");
+            info!("accepted socket");
 
             let socket = TokioIo::new(socket);
 
@@ -105,27 +95,8 @@ async fn run_server(
                 warn!("failed to serve connection: {err:#}");
             }
 
-            info!("ending socket task connection_id {connection_id}");
+            info!("ending socket task");
         });
-    }
-}
-
-// A `MakeRequestId` that increments an atomic counter
-#[derive(Clone, Default)]
-struct CounterRequestId {
-    counter: Arc<AtomicU64>,
-}
-
-impl MakeRequestId for CounterRequestId {
-    fn make_request_id<B>(&mut self, _request: &Request<B>) -> Option<RequestId> {
-        let request_id = self
-            .counter
-            .fetch_add(1, Ordering::SeqCst)
-            .to_string()
-            .parse()
-            .unwrap();
-
-        Some(RequestId::new(request_id))
     }
 }
 
