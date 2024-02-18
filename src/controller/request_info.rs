@@ -6,15 +6,15 @@ use axum::{
     Json,
 };
 
-use crate::{connection::ConnectionInfo, service::request_info_service};
+use crate::service::{connection_service::ConnectionID, request_info_service};
 
 pub async fn get_request_info(
-    ConnectInfo(connection_info): ConnectInfo<ConnectionInfo>,
+    ConnectInfo(connection_id): ConnectInfo<ConnectionID>,
     OriginalUri(original_uri): OriginalUri,
     request: Request<Body>,
 ) -> impl IntoResponse {
     Json(request_info_service::get_request_info(
-        connection_info,
+        connection_id,
         original_uri,
         request,
     ))

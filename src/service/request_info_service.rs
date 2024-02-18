@@ -7,11 +7,11 @@ use serde::Serialize;
 
 use std::collections::BTreeMap;
 
-use crate::connection::ConnectionInfo;
+use crate::service::connection_service::ConnectionID;
 
 #[derive(Debug, Serialize)]
 struct RequestFields {
-    connection_id: u64,
+    connection_id: usize,
     method: String,
     version: &'static str,
     original_uri: String,
@@ -24,7 +24,7 @@ pub struct RequestInfoResponse {
 }
 
 pub fn get_request_info(
-    connection_info: ConnectionInfo,
+    connection_id: ConnectionID,
     original_uri: Uri,
     request: Request<Body>,
 ) -> RequestInfoResponse {
@@ -39,7 +39,7 @@ pub fn get_request_info(
 
     RequestInfoResponse {
         request_fields: RequestFields {
-            connection_id: connection_info.connection_id,
+            connection_id: connection_id.as_usize(),
             method: request.method().as_str().to_owned(),
             version,
             original_uri: original_uri.to_string(),

@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-use axum::Router;
+use axum::{extract::connect_info, Router};
 
 use hyper_util::{
     rt::{TokioExecutor, TokioIo},
@@ -19,14 +19,16 @@ use tower_http::{
 
 use tracing::{debug, info, warn};
 
-use std::{convert::Infallible, path::PathBuf};
+use std::{convert::Infallible, path::PathBuf, sync::Arc};
 
 use crate::{
     config::{self, ServerConfiguration},
-    connection::ConnectionInfo,
     controller,
     request::CounterRequestId,
-    service,
+    service::{
+        self,
+        connection_service::{ConnectionID, DynConnectionTrackerService},
+    },
 };
 
 pub async fn run(config_file: String) -> anyhow::Result<()> {
@@ -36,7 +38,10 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
 
     let command_service = service::command_service::new_commands_service();
 
-    let api_routes = controller::create_api_routes(command_service);
+    let connection_tracker_service = service::connection_service::new_connection_tracker_service();
+
+    let api_routes =
+        controller::create_api_routes(command_service, Arc::clone(&connection_tracker_service));
 
     let routes = Router::new()
         .nest("/api/v1", api_routes)
@@ -57,12 +62,13 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
                 .into_inner(),
         );
 
-    run_server(routes, server_configuration).await
+    run_server(routes, server_configuration, connection_tracker_service).await
 }
 
 async fn run_server(
     routes: Router,
     server_configuration: &ServerConfiguration,
+    connection_tracker_service: DynConnectionTrackerService,
 ) -> anyhow::Result<()> {
     let path = PathBuf::from(&server_configuration.unix_socket_path);
 
@@ -73,20 +79,26 @@ async fn run_server(
 
     info!("listening on uds path: {:?}", path);
 
-    let mut make_service = routes.into_make_service_with_connect_info::<ConnectionInfo>();
+    let mut make_service = routes.into_make_service_with_connect_info::<ConnectionID>();
 
     loop {
+        let connection_tracker_service_clone = Arc::clone(&connection_tracker_service);
+
         let (socket, _remote_addr) = uds.accept().await.context("uds accept error")?;
 
-        let tower_service = unwrap_infallible(make_service.call(&socket).await);
+        let connection_guard = connection_tracker_service_clone.add_connection().await;
+
+        let tower_service = unwrap_infallible(make_service.call(&connection_guard.id).await);
 
         tokio::spawn(async move {
-            info!("accepted socket");
+            info!("accepted connection id {}", connection_guard.id.as_usize());
 
             let socket = TokioIo::new(socket);
 
-            let hyper_service =
-                hyper::service::service_fn(move |request| tower_service.clone().call(request));
+            let hyper_service = hyper::service::service_fn(|request| {
+                connection_guard.increment_num_requests();
+                tower_service.clone().call(request)
+            });
 
             if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
                 .serve_connection(socket, hyper_service)
@@ -95,7 +107,11 @@ async fn run_server(
                 warn!("failed to serve connection: {err:#}");
             }
 
-            info!("ending socket task");
+            info!(
+                "ending connection task connection id {} num requests = {}",
+                connection_guard.id.as_usize(),
+                connection_guard.num_requests(),
+            );
         });
     }
 }
@@ -104,5 +120,12 @@ fn unwrap_infallible<T>(result: Result<T, Infallible>) -> T {
     match result {
         Ok(value) => value,
         Err(err) => match err {},
+    }
+}
+
+impl connect_info::Connected<&ConnectionID> for ConnectionID {
+    fn connect_info(id: &ConnectionID) -> Self {
+        debug!("in connect_info id = {id:?}");
+        *id
     }
 }
