@@ -2,8 +2,6 @@ mod internal;
 
 use axum::async_trait;
 
-use chrono::prelude::{DateTime, Local, SecondsFormat};
-
 use tokio::{
     sync::RwLock,
     time::{Duration, Instant},
@@ -19,6 +17,8 @@ use std::{
     },
     time::SystemTime,
 };
+
+use crate::time_utils::{local_date_time_to_string, LocalDateTime};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct ConnectionID(usize);
@@ -220,10 +220,4 @@ impl From<ConnectionTrackerState> for ConnectionTrackerStateDTO {
             open_connections,
         }
     }
-}
-
-type LocalDateTime = DateTime<Local>;
-
-fn local_date_time_to_string(local_date_time: &LocalDateTime) -> String {
-    local_date_time.to_rfc3339_opts(SecondsFormat::Millis, false)
 }

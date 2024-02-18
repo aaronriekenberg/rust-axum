@@ -1,7 +1,5 @@
 use axum::async_trait;
 
-use chrono::prelude::{Local, SecondsFormat};
-
 use serde::Serialize;
 
 use std::{collections::HashMap, process::Stdio, sync::Arc};
@@ -12,7 +10,7 @@ use tokio::{
     time::{Duration, Instant},
 };
 
-use crate::config;
+use crate::{config, time_utils::current_local_date_time_string};
 
 #[async_trait]
 pub trait CommandsService {
@@ -101,7 +99,7 @@ impl CommandsService for CommandsServiceImpl {
         drop(permit);
 
         Ok(RunCommandResponse {
-            now: current_time_string(),
+            now: current_local_date_time_string(),
             command_duration_ms: command_duration.as_millis(),
             command_info,
             command_output: match command_result {
@@ -119,8 +117,4 @@ impl CommandsService for CommandsServiceImpl {
             },
         })
     }
-}
-
-fn current_time_string() -> String {
-    Local::now().to_rfc3339_opts(SecondsFormat::Nanos, true)
 }
