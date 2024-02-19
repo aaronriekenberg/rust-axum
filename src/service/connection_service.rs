@@ -98,7 +98,7 @@ impl Drop for ConnectionGuard {
 #[async_trait]
 pub trait ConnectionTrackerService {
     async fn add_connection(self: Arc<Self>) -> ConnectionGuard;
-    async fn state_dto(self: Arc<Self>) -> ConnectionTrackerStateDTO;
+    async fn get_state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO;
 }
 
 pub type DynConnectionTrackerService = Arc<dyn ConnectionTrackerService + Send + Sync>;
@@ -124,10 +124,12 @@ impl ConnectionTrackerServiceImpl {
         state.remove_connection(connection_id);
     }
 
-    async fn connection_tracker_state(self: Arc<Self>) -> ConnectionTrackerState {
+    async fn get_connection_tracker_state_snapshot(
+        self: Arc<Self>,
+    ) -> ConnectionTrackerStateSnapshot {
         let state = self.state.read().await;
 
-        ConnectionTrackerState {
+        ConnectionTrackerStateSnapshot {
             max_open_connections: state.max_open_connections(),
             max_connection_age: state.max_connection_age(),
             max_requests_per_connection: state.max_requests_per_connection(),
@@ -144,12 +146,12 @@ impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
         state.add_connection(Arc::clone(&self))
     }
 
-    async fn state_dto(self: Arc<Self>) -> ConnectionTrackerStateDTO {
-        self.connection_tracker_state().await.into()
+    async fn get_state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO {
+        self.get_connection_tracker_state_snapshot().await.into()
     }
 }
 
-struct ConnectionTrackerState {
+struct ConnectionTrackerStateSnapshot {
     max_open_connections: usize,
     max_connection_age: Duration,
     max_requests_per_connection: usize,
@@ -157,7 +159,7 @@ struct ConnectionTrackerState {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ConnectionInfoDTO {
+pub struct ConnectionInfoSnapshotDTO {
     id: usize,
     creation_time: String,
     #[serde(with = "humantime_serde")]
@@ -165,7 +167,7 @@ pub struct ConnectionInfoDTO {
     num_requests: usize,
 }
 
-impl From<Arc<ConnectionInfo>> for ConnectionInfoDTO {
+impl From<Arc<ConnectionInfo>> for ConnectionInfoSnapshotDTO {
     fn from(connection_info: Arc<ConnectionInfo>) -> Self {
         // truncate to seconds
         let age = Duration::from_secs(connection_info.age(Instant::now()).as_secs());
@@ -182,18 +184,18 @@ impl From<Arc<ConnectionInfo>> for ConnectionInfoDTO {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ConnectionTrackerStateDTO {
+pub struct ConnectionTrackerStateSnapshotDTO {
     max_open_connections: usize,
     #[serde(with = "humantime_serde")]
     max_connection_lifetime: Duration,
     max_requests_per_connection: usize,
     num_open_connections: usize,
-    open_connections: Vec<ConnectionInfoDTO>,
+    open_connections: Vec<ConnectionInfoSnapshotDTO>,
 }
 
-impl From<ConnectionTrackerState> for ConnectionTrackerStateDTO {
-    fn from(state: ConnectionTrackerState) -> Self {
-        let id_to_open_connection: BTreeMap<ConnectionID, Arc<ConnectionInfo>> = state
+impl From<ConnectionTrackerStateSnapshot> for ConnectionTrackerStateSnapshotDTO {
+    fn from(state_snapshot: ConnectionTrackerStateSnapshot) -> Self {
+        let id_to_open_connection: BTreeMap<ConnectionID, Arc<ConnectionInfo>> = state_snapshot
             .open_connections
             .into_iter()
             .map(|c| (c.id, c))
@@ -210,12 +212,13 @@ impl From<ConnectionTrackerState> for ConnectionTrackerStateDTO {
             .collect();
 
         // truncate to seconds
-        let max_connection_lifetime = Duration::from_secs(state.max_connection_age.as_secs());
+        let max_connection_lifetime =
+            Duration::from_secs(state_snapshot.max_connection_age.as_secs());
 
         Self {
-            max_open_connections: state.max_open_connections,
+            max_open_connections: state_snapshot.max_open_connections,
             max_connection_lifetime,
-            max_requests_per_connection: state.max_requests_per_connection,
+            max_requests_per_connection: state_snapshot.max_requests_per_connection,
             num_open_connections,
             open_connections,
         }
