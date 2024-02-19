@@ -221,7 +221,7 @@ impl From<ConnectionTrackerStateSnapshot> for ConnectionTrackerStateSnapshotDTO 
 
         // truncate to seconds
         let max_connection_lifetime =
-            Duration::from_secs(state_snapshot.max_connection_age.as_secs());
+            Duration::from_secs(state_snapshot.max_connection_lifetime.as_secs());
 
         Self {
             max_open_connections: state_snapshot.max_open_connections,
