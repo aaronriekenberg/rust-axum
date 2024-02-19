@@ -131,7 +131,8 @@ impl ConnectionTrackerServiceImpl {
 
         ConnectionTrackerStateSnapshot {
             max_open_connections: state.max_open_connections(),
-            max_connection_age: state.max_connection_age(),
+            min_connection_lifetime: state.min_connection_lifetime(),
+            max_connection_lifetime: state.max_connection_lifetime(),
             max_requests_per_connection: state.max_requests_per_connection(),
             open_connections: state.open_connections().cloned().collect(),
         }
@@ -153,7 +154,8 @@ impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
 
 struct ConnectionTrackerStateSnapshot {
     max_open_connections: usize,
-    max_connection_age: Duration,
+    min_connection_lifetime: Duration,
+    max_connection_lifetime: Duration,
     max_requests_per_connection: usize,
     open_connections: Vec<Arc<ConnectionInfo>>,
 }
@@ -187,6 +189,8 @@ impl From<Arc<ConnectionInfo>> for ConnectionInfoSnapshotDTO {
 pub struct ConnectionTrackerStateSnapshotDTO {
     max_open_connections: usize,
     #[serde(with = "humantime_serde")]
+    min_connection_lifetime: Duration,
+    #[serde(with = "humantime_serde")]
     max_connection_lifetime: Duration,
     max_requests_per_connection: usize,
     num_open_connections: usize,
@@ -212,11 +216,16 @@ impl From<ConnectionTrackerStateSnapshot> for ConnectionTrackerStateSnapshotDTO 
             .collect();
 
         // truncate to seconds
+        let min_connection_lifetime =
+            Duration::from_secs(state_snapshot.min_connection_lifetime.as_secs());
+
+        // truncate to seconds
         let max_connection_lifetime =
             Duration::from_secs(state_snapshot.max_connection_age.as_secs());
 
         Self {
             max_open_connections: state_snapshot.max_open_connections,
+            min_connection_lifetime,
             max_connection_lifetime,
             max_requests_per_connection: state_snapshot.max_requests_per_connection,
             num_open_connections,

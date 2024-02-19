@@ -9,6 +9,7 @@ use super::{ConnectionGuard, ConnectionID, ConnectionInfo, ConnectionTrackerServ
 #[derive(Default)]
 struct ConnectionTrackerMetrics {
     max_open_connections: usize,
+    past_min_connection_age: Option<Duration>,
     past_max_connection_age: Duration,
     past_max_requests_per_connection: usize,
 }
@@ -19,10 +20,15 @@ impl ConnectionTrackerMetrics {
     }
 
     fn update_for_removed_connection(&mut self, removed_connection_info: &ConnectionInfo) {
-        self.past_max_connection_age = cmp::max(
-            self.past_max_connection_age,
-            removed_connection_info.age(Instant::now()),
-        );
+        let removed_connection_age = removed_connection_info.age(Instant::now());
+
+        self.past_min_connection_age = Some(cmp::min(
+            self.past_min_connection_age.unwrap_or(Duration::MAX),
+            removed_connection_age,
+        ));
+
+        self.past_max_connection_age =
+            cmp::max(self.past_max_connection_age, removed_connection_age);
 
         self.past_max_requests_per_connection = cmp::max(
             self.past_max_requests_per_connection,
@@ -97,7 +103,21 @@ impl ConnectionTrackerState {
         self.metrics.max_open_connections
     }
 
-    pub fn max_connection_age(&self) -> Duration {
+    pub fn min_connection_lifetime(&self) -> Duration {
+        let now = Instant::now();
+        cmp::min(
+            self.metrics
+                .past_min_connection_age
+                .unwrap_or(Duration::MAX),
+            self.id_to_connection_info
+                .values()
+                .map(|c| c.age(now))
+                .min()
+                .unwrap_or_default(),
+        )
+    }
+
+    pub fn max_connection_lifetime(&self) -> Duration {
         let now = Instant::now();
         cmp::max(
             self.metrics.past_max_connection_age,
