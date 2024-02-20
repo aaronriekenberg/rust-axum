@@ -104,17 +104,17 @@ impl ConnectionTrackerState {
     }
 
     pub fn min_connection_lifetime(&self) -> Duration {
-        let now = Instant::now();
-        cmp::min(
-            self.metrics
-                .past_min_connection_age
-                .unwrap_or(Duration::MAX),
-            self.id_to_connection_info
-                .values()
-                .map(|c| c.age(now))
-                .min()
-                .unwrap_or_default(),
-        )
+        match self.metrics.past_min_connection_age {
+            Some(past_min_connection_age) => past_min_connection_age,
+            None => {
+                let now = Instant::now();
+                self.id_to_connection_info
+                    .values()
+                    .map(|c| c.age(now))
+                    .min()
+                    .unwrap_or_default()
+            }
+        }
     }
 
     pub fn max_connection_lifetime(&self) -> Duration {
