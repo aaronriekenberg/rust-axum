@@ -104,7 +104,10 @@ async fn run_server(
                 .serve_connection(socket, hyper_service)
                 .await
             {
-                warn!("failed to serve connection: {err:#}");
+                warn!(
+                    "failed to serve connection id {}: {err:#}",
+                    connection_guard.id.as_usize()
+                );
             }
 
             info!(
