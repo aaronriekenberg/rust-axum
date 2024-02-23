@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use crate::service::connection_service::ConnectionID;
 
 #[derive(Debug, Serialize)]
-struct RequestFields {
+struct RequestFieldsDTO {
     connection_id: usize,
     method: String,
     version: &'static str,
@@ -18,8 +18,8 @@ struct RequestFields {
 }
 
 #[derive(Debug, Serialize)]
-pub struct RequestInfoResponse {
-    request_fields: RequestFields,
+pub struct RequestInfoDTO {
+    request_fields: RequestFieldsDTO,
     request_headers: BTreeMap<String, String>,
 }
 
@@ -27,7 +27,7 @@ pub fn request_info(
     connection_id: ConnectionID,
     original_uri: Uri,
     request: Request<Body>,
-) -> RequestInfoResponse {
+) -> RequestInfoDTO {
     let version = match request.version() {
         Version::HTTP_09 => "HTTP/0.9",
         Version::HTTP_10 => "HTTP/1.0",
@@ -37,8 +37,8 @@ pub fn request_info(
         _ => "[Unknown]",
     };
 
-    RequestInfoResponse {
-        request_fields: RequestFields {
+    RequestInfoDTO {
+        request_fields: RequestFieldsDTO {
             connection_id: connection_id.as_usize(),
             method: request.method().as_str().to_owned(),
             version,

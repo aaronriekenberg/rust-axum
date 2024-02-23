@@ -5,7 +5,7 @@ use axum::{
     Json,
 };
 
-use crate::service::command_service::{DynCommandsService, RunCommandError, RunCommandResponse};
+use crate::service::command_service::{DynCommandsService, RunCommandDTO, RunCommandError};
 
 use tracing::debug;
 
@@ -25,7 +25,7 @@ pub async fn all_commands(State(commands_service): State<DynCommandsService>) ->
 pub async fn run_command(
     Path(id): Path<String>,
     State(commands_service): State<DynCommandsService>,
-) -> Result<Json<RunCommandResponse>, RunCommandError> {
+) -> Result<Json<RunCommandDTO>, RunCommandError> {
     debug!("in run_command id = {}", id);
 
     let response = commands_service.run_command(&id).await?;

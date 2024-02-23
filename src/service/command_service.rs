@@ -16,13 +16,13 @@ use crate::{config, time_utils::current_local_date_time_string};
 pub trait CommandsService {
     fn all_comamnds(&self) -> Vec<&'static config::CommandInfo>;
 
-    async fn run_command(&self, command_id: &str) -> Result<RunCommandResponse, RunCommandError>;
+    async fn run_command(&self, command_id: &str) -> Result<RunCommandDTO, RunCommandError>;
 }
 
 pub type DynCommandsService = Arc<dyn CommandsService + Send + Sync>;
 
 #[derive(Debug, Serialize)]
-pub struct RunCommandResponse {
+pub struct RunCommandDTO {
     now: String,
     command_duration_ms: u128,
     command_info: &'static config::CommandInfo,
@@ -79,7 +79,7 @@ impl CommandsService for CommandsServiceImpl {
         self.all_command_info.clone()
     }
 
-    async fn run_command(&self, command_id: &str) -> Result<RunCommandResponse, RunCommandError> {
+    async fn run_command(&self, command_id: &str) -> Result<RunCommandDTO, RunCommandError> {
         let command_info = self
             .id_to_command_info
             .get(command_id)
@@ -98,7 +98,7 @@ impl CommandsService for CommandsServiceImpl {
 
         drop(permit);
 
-        Ok(RunCommandResponse {
+        Ok(RunCommandDTO {
             now: current_local_date_time_string(),
             command_duration_ms: command_duration.as_millis(),
             command_info,
