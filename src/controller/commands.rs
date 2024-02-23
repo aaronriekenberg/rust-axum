@@ -18,10 +18,8 @@ impl IntoResponse for RunCommandError {
     }
 }
 
-pub async fn get_all_commands(
-    State(commands_service): State<DynCommandsService>,
-) -> impl IntoResponse {
-    Json(commands_service.get_all_comamnds())
+pub async fn all_commands(State(commands_service): State<DynCommandsService>) -> impl IntoResponse {
+    Json(commands_service.all_comamnds())
 }
 
 pub async fn run_command(

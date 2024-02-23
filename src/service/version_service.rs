@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 pub type VersionInfoMap = BTreeMap<&'static str, &'static str>;
 
-pub fn get_verison_info() -> VersionInfoMap {
+pub fn verison_info() -> VersionInfoMap {
     let mut map = VersionInfoMap::new();
 
     map.insert("build_timestamp", env!("VERGEN_BUILD_TIMESTAMP"));

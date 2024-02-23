@@ -14,7 +14,7 @@ use crate::{config, time_utils::current_local_date_time_string};
 
 #[async_trait]
 pub trait CommandsService {
-    fn get_all_comamnds(&self) -> Vec<&'static config::CommandInfo>;
+    fn all_comamnds(&self) -> Vec<&'static config::CommandInfo>;
 
     async fn run_command(&self, command_id: &str) -> Result<RunCommandResponse, RunCommandError>;
 }
@@ -75,7 +75,7 @@ impl CommandsServiceImpl {
 
 #[async_trait]
 impl CommandsService for CommandsServiceImpl {
-    fn get_all_comamnds(&self) -> Vec<&'static config::CommandInfo> {
+    fn all_comamnds(&self) -> Vec<&'static config::CommandInfo> {
         self.all_command_info.clone()
     }
 

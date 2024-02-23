@@ -11,7 +11,7 @@ use tracing::{error, info};
 
 fn log_version_info() {
     info!("Version Info:");
-    for (key, value) in crate::service::version_service::get_verison_info() {
+    for (key, value) in crate::service::version_service::verison_info() {
         info!("{}: {}", key, value);
     }
 }

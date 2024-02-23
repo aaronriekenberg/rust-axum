@@ -14,17 +14,17 @@ pub fn create_api_routes(
     connection_tracker_service: DynConnectionTrackerService,
 ) -> Router {
     let command_routes = Router::new()
-        .route("/", get(commands::get_all_commands))
+        .route("/", get(commands::all_commands))
         .route("/:id", get(commands::run_command))
         .with_state(commands_service);
 
     let connection_routes = Router::new()
-        .route("/", get(connection_info::get_connection_info))
+        .route("/", get(connection_info::connection_info))
         .with_state(connection_tracker_service);
 
     Router::new()
         .nest("/commands", command_routes)
         .nest("/connection_info", connection_routes)
-        .route("/request_info", get(request_info::get_request_info))
+        .route("/request_info", get(request_info::request_info))
         .route("/version_info", get(version_info::get_version_info))
 }

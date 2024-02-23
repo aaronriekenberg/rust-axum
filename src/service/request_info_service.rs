@@ -23,7 +23,7 @@ pub struct RequestInfoResponse {
     request_headers: BTreeMap<String, String>,
 }
 
-pub fn get_request_info(
+pub fn request_info(
     connection_id: ConnectionID,
     original_uri: Uri,
     request: Request<Body>,

@@ -98,7 +98,7 @@ impl Drop for ConnectionGuard {
 #[async_trait]
 pub trait ConnectionTrackerService {
     async fn add_connection(self: Arc<Self>) -> ConnectionGuard;
-    async fn get_state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO;
+    async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO;
 }
 
 pub type DynConnectionTrackerService = Arc<dyn ConnectionTrackerService + Send + Sync>;
@@ -124,9 +124,7 @@ impl ConnectionTrackerServiceImpl {
         state.remove_connection(connection_id);
     }
 
-    async fn get_connection_tracker_state_snapshot(
-        self: Arc<Self>,
-    ) -> ConnectionTrackerStateSnapshot {
+    async fn connection_tracker_state_snapshot(self: Arc<Self>) -> ConnectionTrackerStateSnapshot {
         let state = self.state.read().await;
 
         ConnectionTrackerStateSnapshot {
@@ -147,8 +145,8 @@ impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
         state.add_connection(Arc::clone(&self))
     }
 
-    async fn get_state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO {
-        self.get_connection_tracker_state_snapshot().await.into()
+    async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO {
+        self.connection_tracker_state_snapshot().await.into()
     }
 }
 
