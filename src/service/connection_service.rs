@@ -89,7 +89,7 @@ impl Drop for ConnectionGuard {
         let id = self.id;
         let connection_tracker_service = Arc::clone(&self.connection_tracker_service);
 
-        tokio::task::spawn(async move {
+        tokio::spawn(async move {
             connection_tracker_service.remove_connection(id).await;
         });
     }
