@@ -65,26 +65,34 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
     run_server(routes, server_configuration, connection_tracker_service).await
 }
 
-async fn run_server(
-    routes: Router,
+async fn create_listener(
     server_configuration: &ServerConfiguration,
-    connection_tracker_service: DynConnectionTrackerService,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<UnixListener> {
     let path = PathBuf::from(&server_configuration.unix_socket_path);
 
     let remove_result = tokio::fs::remove_file(&path).await;
     debug!("remove_result = {:?}", remove_result);
 
-    let uds = UnixListener::bind(&path).context("UnixListener::bind error")?;
+    let unix_listener = UnixListener::bind(&path).context("UnixListener::bind error")?;
 
     info!("listening on uds path: {:?}", path);
+
+    Ok(unix_listener)
+}
+
+async fn run_server(
+    routes: Router,
+    server_configuration: &ServerConfiguration,
+    connection_tracker_service: DynConnectionTrackerService,
+) -> anyhow::Result<()> {
+    let listener = create_listener(server_configuration).await?;
 
     let mut make_service = routes.into_make_service_with_connect_info::<ConnectionID>();
 
     loop {
         let connection_tracker_service_clone = Arc::clone(&connection_tracker_service);
 
-        let (socket, _remote_addr) = uds.accept().await.context("uds accept error")?;
+        let (socket, _remote_addr) = listener.accept().await.context("listener accept error")?;
 
         let connection_guard = connection_tracker_service_clone.add_connection().await;
 
