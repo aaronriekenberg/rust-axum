@@ -1,13 +1,17 @@
 use anyhow::Context;
 
-use axum::{extract::connect_info, Router};
+use axum::{
+    extract::{connect_info, ConnectInfo},
+    middleware::AddExtension,
+    Router,
+};
 
 use hyper_util::{
     rt::{TokioExecutor, TokioIo},
     server,
 };
 
-use tokio::net::UnixListener;
+use tokio::net::{UnixListener, UnixStream};
 
 use tower::{Service, ServiceBuilder};
 
@@ -17,7 +21,7 @@ use tower_http::{
     ServiceBuilderExt,
 };
 
-use tracing::{debug, info, warn};
+use tracing::{debug, info, instrument, warn};
 
 use std::{convert::Infallible, path::PathBuf, sync::Arc};
 
@@ -27,7 +31,7 @@ use crate::{
     request::CounterRequestId,
     service::{
         self,
-        connection_service::{ConnectionID, DynConnectionTrackerService},
+        connection_service::{ConnectionGuard, ConnectionID, DynConnectionTrackerService},
     },
 };
 
@@ -98,33 +102,41 @@ async fn run_server(
 
         let tower_service = unwrap_infallible(make_service.call(&connection_guard.id).await);
 
-        tokio::spawn(async move {
-            info!("accepted connection id {}", connection_guard.id.as_usize());
-
-            let socket = TokioIo::new(socket);
-
-            let hyper_service = hyper::service::service_fn(|request| {
-                connection_guard.increment_num_requests();
-                tower_service.clone().call(request)
-            });
-
-            if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
-                .serve_connection(socket, hyper_service)
-                .await
-            {
-                warn!(
-                    "failed to serve connection id {}: {err:#}",
-                    connection_guard.id.as_usize()
-                );
-            }
-
-            info!(
-                "ending connection task connection id {} num requests = {}",
-                connection_guard.id.as_usize(),
-                connection_guard.num_requests(),
-            );
-        });
+        tokio::spawn(handle_connection(connection_guard, socket, tower_service));
     }
+}
+
+#[instrument(
+    skip_all,
+    fields(
+        id = connection_guard.id.as_usize(),
+    )
+)]
+async fn handle_connection(
+    connection_guard: ConnectionGuard,
+    socket: UnixStream,
+    tower_service: AddExtension<Router, ConnectInfo<ConnectionID>>,
+) {
+    info!("begin handle_connection");
+
+    let socket = TokioIo::new(socket);
+
+    let hyper_service = hyper::service::service_fn(|request| {
+        connection_guard.increment_num_requests();
+        tower_service.clone().call(request)
+    });
+
+    if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
+        .serve_connection(socket, hyper_service)
+        .await
+    {
+        warn!("failed to serve connection: {err:#}");
+    }
+
+    info!(
+        "end handle_connection num requests = {}",
+        connection_guard.num_requests(),
+    );
 }
 
 fn unwrap_infallible<T>(result: Result<T, Infallible>) -> T {
