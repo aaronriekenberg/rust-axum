@@ -18,7 +18,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::time_utils::{local_date_time_to_string, LocalDateTime};
+use crate::utils::time::{local_date_time_to_string, LocalDateTime};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct ConnectionID(usize);

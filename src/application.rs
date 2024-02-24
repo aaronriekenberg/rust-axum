@@ -28,11 +28,11 @@ use std::{convert::Infallible, path::PathBuf, sync::Arc};
 use crate::{
     config::{self, ServerConfiguration},
     controller,
-    request::CounterRequestId,
     service::{
         self,
         connection_service::{ConnectionGuard, ConnectionID, DynConnectionTrackerService},
     },
+    utils::request::CounterRequestId,
 };
 
 pub async fn run(config_file: String) -> anyhow::Result<()> {
