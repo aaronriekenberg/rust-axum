@@ -7,8 +7,15 @@ max_concurrent_commands = 10
 semaphore_acquire_timeout = "200msec"
 commands = [
     { id = "chronyc_sources", description = "chronyc sources", command = "/usr/bin/chronyc", args = [
+        "-a",
         "-n",
         "sources",
+        "-v",
+    ] },
+    { id = "chronyc_sourcestats", description = "chronyc sourcestats", command = "/usr/bin/chronyc", args = [
+        "-a",
+        "-n",
+        "sourcestats",
         "-v",
     ] },
     { id = "df", description = "df", command = "/usr/bin/df", args = [
