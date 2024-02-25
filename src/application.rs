@@ -107,6 +107,7 @@ async fn run_server(
 }
 
 #[instrument(
+    name = "conn",
     skip_all,
     fields(
         id = connection_guard.id.as_usize(),
