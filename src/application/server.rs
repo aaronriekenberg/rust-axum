@@ -34,11 +34,11 @@ pub async fn run(
     let mut make_service = routes.into_make_service_with_connect_info::<ConnectionID>();
 
     loop {
-        let connection_tracker_service_clone = Arc::clone(&connection_tracker_service);
-
         let (socket, _remote_addr) = listener.accept().await.context("listener accept error")?;
 
-        let connection_guard = connection_tracker_service_clone.add_connection().await;
+        let connection_guard = Arc::clone(&connection_tracker_service)
+            .add_connection()
+            .await;
 
         let tower_service = unwrap_infallible(make_service.call(&connection_guard.id).await);
 
