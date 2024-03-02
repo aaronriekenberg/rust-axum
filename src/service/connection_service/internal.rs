@@ -81,11 +81,7 @@ impl ConnectionTrackerState {
             new_num_connections
         );
 
-        ConnectionGuard::new(
-            connection_id,
-            num_requests,
-            Arc::clone(&connection_tracker_service),
-        )
+        ConnectionGuard::new(connection_id, num_requests, connection_tracker_service)
     }
 
     pub fn remove_connection(&mut self, connection_id: ConnectionID) {
