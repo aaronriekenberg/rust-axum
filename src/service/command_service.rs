@@ -10,7 +10,12 @@ use tokio::{
     time::{Duration, Instant},
 };
 
-use crate::{config, utils::time::current_local_date_time_string};
+use tracing::warn;
+
+use crate::{
+    config::{self, CommandInfo},
+    utils::time::current_local_date_time_string,
+};
 
 #[async_trait]
 pub trait CommandsService {
@@ -65,28 +70,24 @@ impl CommandsServiceImpl {
     async fn acquire_semaphore(&self) -> Result<SemaphorePermit<'_>, RunCommandError> {
         let result = tokio::time::timeout(self.semapore_acquire_timeout, self.semapore.acquire())
             .await
-            .map_err(|_| RunCommandError::SemaphoreAcquireError)?;
+            .map_err(|e| {
+                warn!("acquire_semapore timeout error: {}", e);
+                RunCommandError::SemaphoreAcquireError
+            })?;
 
-        let permit = result.map_err(|_| RunCommandError::SemaphoreAcquireError)?;
+        let permit = result.map_err(|e| {
+            warn!("acquire_semapore acquire error: {}", e);
+            RunCommandError::SemaphoreAcquireError
+        })?;
 
         Ok(permit)
     }
-}
 
-#[async_trait]
-impl CommandsService for CommandsServiceImpl {
-    fn all_comamnds(&self) -> Vec<&'static config::CommandInfo> {
-        self.all_command_info.clone()
-    }
-
-    async fn run_command(&self, command_id: &str) -> Result<RunCommandDTO, RunCommandError> {
-        let command_info = self
-            .id_to_command_info
-            .get(command_id)
-            .ok_or(RunCommandError::CommandNotFound)?;
-
-        let permit = self.acquire_semaphore().await?;
-
+    async fn internal_run_command(
+        &self,
+        command_info: &'static CommandInfo,
+        permit: SemaphorePermit<'_>,
+    ) -> Result<RunCommandDTO, RunCommandError> {
         let command_start_time = Instant::now();
         let command_result = Command::new(&command_info.command)
             .args(&command_info.args)
@@ -116,5 +117,23 @@ impl CommandsService for CommandsServiceImpl {
                 }
             },
         })
+    }
+}
+
+#[async_trait]
+impl CommandsService for CommandsServiceImpl {
+    fn all_comamnds(&self) -> Vec<&'static config::CommandInfo> {
+        self.all_command_info.clone()
+    }
+
+    async fn run_command(&self, command_id: &str) -> Result<RunCommandDTO, RunCommandError> {
+        let command_info = self
+            .id_to_command_info
+            .get(command_id)
+            .ok_or(RunCommandError::CommandNotFound)?;
+
+        let permit = self.acquire_semaphore().await?;
+
+        self.internal_run_command(command_info, permit).await
     }
 }
