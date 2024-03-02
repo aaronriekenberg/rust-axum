@@ -17,7 +17,7 @@ use tower::Service;
 
 use tracing::{debug, info, instrument, warn};
 
-use std::{convert::Infallible, path::PathBuf, sync::Arc};
+use std::{convert::Infallible, path::Path, sync::Arc};
 
 use crate::{
     config::ServerConfiguration,
@@ -49,12 +49,12 @@ pub async fn run(
 async fn create_listener(
     server_configuration: &ServerConfiguration,
 ) -> anyhow::Result<UnixListener> {
-    let path = PathBuf::from(&server_configuration.unix_socket_path);
+    let path = Path::new(&server_configuration.unix_socket_path);
 
     let remove_result = tokio::fs::remove_file(&path).await;
     debug!("remove_result = {:?}", remove_result);
 
-    let unix_listener = UnixListener::bind(&path).context("UnixListener::bind error")?;
+    let unix_listener = UnixListener::bind(path).context("UnixListener::bind error")?;
 
     info!("listening on uds path: {:?}", path);
 
