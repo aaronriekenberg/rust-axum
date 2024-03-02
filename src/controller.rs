@@ -26,5 +26,5 @@ pub fn create_api_routes(
         .nest("/commands", command_routes)
         .nest("/connection_info", connection_routes)
         .route("/request_info", get(request_info::request_info))
-        .route("/version_info", get(version_info::get_version_info))
+        .route("/version_info", get(version_info::version_info))
 }
