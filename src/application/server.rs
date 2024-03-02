@@ -51,11 +51,10 @@ async fn create_listener(
 ) -> anyhow::Result<UnixListener> {
     let path = Path::new(&server_configuration.unix_socket_path);
 
-    let remove_result = tokio::fs::remove_file(&path).await;
+    let remove_result = tokio::fs::remove_file(path).await;
     debug!("remove_result = {:?}", remove_result);
 
     let unix_listener = UnixListener::bind(path).context("UnixListener::bind error")?;
-
     info!("listening on uds path: {:?}", path);
 
     Ok(unix_listener)
