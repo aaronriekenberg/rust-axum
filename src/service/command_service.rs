@@ -87,7 +87,7 @@ impl CommandsServiceImpl {
         &self,
         command_info: &'static CommandInfo,
         permit: SemaphorePermit<'_>,
-    ) -> Result<RunCommandDTO, RunCommandError> {
+    ) -> RunCommandDTO {
         let command_start_time = Instant::now();
         let command_result = Command::new(&command_info.command)
             .args(&command_info.args)
@@ -99,7 +99,7 @@ impl CommandsServiceImpl {
 
         drop(permit);
 
-        Ok(RunCommandDTO {
+        RunCommandDTO {
             now: current_local_date_time_string(),
             command_duration_ms: command_duration.as_millis(),
             command_info,
@@ -116,7 +116,7 @@ impl CommandsServiceImpl {
                     combined_output
                 }
             },
-        })
+        }
     }
 }
 
@@ -134,6 +134,6 @@ impl CommandsService for CommandsServiceImpl {
 
         let permit = self.acquire_semaphore().await?;
 
-        self.internal_run_command(command_info, permit).await
+        Ok(self.internal_run_command(command_info, permit).await)
     }
 }
