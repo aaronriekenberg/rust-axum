@@ -18,11 +18,11 @@ commands = [
         "sourcestats",
         "-v",
     ] },
-    { id = "edac-util", description = "edac-util -v", command = "/usr/bin/edac-util", args = [
-        "-v",
-    ] },
     { id = "df", description = "df", command = "/usr/bin/df", args = [
         "-h",
+    ] },
+    { id = "edac-util", description = "edac-util -v", command = "/usr/bin/edac-util", args = [
+        "-v",
     ] },
     { id = "git_log", description = "git log", command = "/usr/bin/git", args = [
         "log",
