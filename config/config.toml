@@ -18,6 +18,9 @@ commands = [
         "sourcestats",
         "-v",
     ] },
+    { id = "edac-util", description = "edac-util -v", command = "/usr/bin/edac-util", args = [
+        "-v",
+    ] },
     { id = "df", description = "df", command = "/usr/bin/df", args = [
         "-h",
     ] },
