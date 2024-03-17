@@ -1,6 +1,7 @@
 [server_configuration]
 unix_socket_path = "./test"
 request_timeout = "10seconds"
+context = "/api/v1"
 
 [command_configuration]
 max_concurrent_commands = 1

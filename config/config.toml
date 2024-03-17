@@ -1,6 +1,7 @@
 [server_configuration]
 unix_socket_path = "/var/www/run/api/socket"
 request_timeout = "10seconds"
+context = "/apu_api/v1"
 
 [command_configuration]
 max_concurrent_commands = 10

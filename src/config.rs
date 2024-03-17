@@ -13,6 +13,7 @@ pub struct ServerConfiguration {
     pub unix_socket_path: String,
     #[serde(with = "humantime_serde")]
     pub request_timeout: Duration,
+    pub context: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
