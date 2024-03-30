@@ -55,7 +55,7 @@ async fn create_listener(
     debug!("remove_result = {:?}", remove_result);
 
     let unix_listener = UnixListener::bind(path).context("UnixListener::bind error")?;
-    info!("listening on uds path: {:?}", path);
+    info!("listening on unix path: {:?}", path);
 
     Ok(unix_listener)
 }
