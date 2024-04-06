@@ -7,12 +7,6 @@ context = "/rpi_api/v1"
 max_concurrent_commands = 10
 semaphore_acquire_timeout = "200msec"
 commands = [
-    { id = "chronyc_sourcestats", description = "chronyc sourcestats", command = "/usr/bin/chronyc", args = [
-        "-a",
-        "-n",
-        "sourcestats",
-        "-v",
-    ] },
     { id = "df", description = "df", command = "/usr/bin/df", args = [
         "-h",
     ] },
