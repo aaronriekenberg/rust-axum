@@ -7,7 +7,7 @@ use axum::{
 };
 
 use hyper_util::{
-    rt::{TokioExecutor, TokioIo},
+    rt::{TokioExecutor, TokioIo, TokioTimer},
     server,
 };
 
@@ -105,6 +105,7 @@ async fn handle_connection(
         .http2()
         .keep_alive_interval(Duration::from_secs(20))
         .keep_alive_timeout(Duration::from_secs(20))
+        .timer(TokioTimer::new())
         .serve_connection(socket, hyper_service)
         .await
     {
