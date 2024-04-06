@@ -1,5 +1,5 @@
 [server_configuration]
-bind_address = "[::1]:8080"
+bind_address = "[::]:8080"
 request_timeout = "10seconds"
 context = "/apu_api/v1"
 
