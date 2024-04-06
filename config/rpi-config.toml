@@ -1,0 +1,51 @@
+[server_configuration]
+bind_address = "[::1]:8080"
+request_timeout = "10seconds"
+context = "/apu_api/v1"
+
+[command_configuration]
+max_concurrent_commands = 10
+semaphore_acquire_timeout = "200msec"
+commands = [
+    { id = "chronyc_sourcestats", description = "chronyc sourcestats", command = "/usr/bin/chronyc", args = [
+        "-a",
+        "-n",
+        "sourcestats",
+        "-v",
+    ] },
+    { id = "df", description = "df", command = "/usr/bin/df", args = [
+        "-h",
+    ] },
+    { id = "git_log", description = "git log", command = "/usr/bin/git", args = [
+        "log",
+        "-1",
+    ] },
+    { id = "ip_addr", description = "ip addr", command = "/usr/sbin/ip", args = [
+        "addr",
+    ] },
+    { id = "lscpu", description = "lscpu", command = "/usr/bin/lscpu" },
+    { id = "lscpu_e", description = "lscpu -e", command = "/usr/bin/lscpu", args = [
+        "-e",
+    ] },
+    { id = "netstat_an", description = "netstat -an", command = "/usr/bin/netstat", args = [
+        "-a",
+        "-n",
+    ] },
+    { id = "sensors", description = "sensors", command = "/usr/bin/sensors" },
+    { id = "timedatectl", description = "timedatectl timesync-status", command = "/usr/bin/timedatectl", args = [
+        "timesync-status",
+    ] },
+    { id = "top", description = "top", command = "/usr/bin/top", args = [
+        "-b",
+        "-n1",
+    ] },
+    { id = "top_ores", description = "top -o RES", command = "/usr/bin/top", args = [
+        "-b",
+        "-n1",
+        "-o",
+        "RES",
+    ] },
+    { id = "uptime", description = "uptime", command = "/usr/bin/uptime" },
+    { id = "vmstat", description = "vmstat", command = "/usr/bin/vmstat" },
+    { id = "w", description = "w", command = "/usr/bin/w" },
+]
