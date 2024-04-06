@@ -10,7 +10,7 @@ use std::time::Duration;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ServerConfiguration {
-    pub unix_socket_path: String,
+    pub bind_address: String,
     #[serde(with = "humantime_serde")]
     pub request_timeout: Duration,
     pub context: String,

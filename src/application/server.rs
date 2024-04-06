@@ -11,13 +11,13 @@ use hyper_util::{
     server,
 };
 
-use tokio::net::{UnixListener, UnixStream};
+use tokio::net::{TcpListener, TcpStream};
 
 use tower::Service;
 
 use tracing::{debug, info, instrument, warn};
 
-use std::{convert::Infallible, path::Path, sync::Arc};
+use std::{convert::Infallible, sync::Arc, time::Duration};
 
 use crate::{
     config::ServerConfiguration,
@@ -34,7 +34,13 @@ pub async fn run(
     let mut make_service = routes.into_make_service_with_connect_info::<ConnectionID>();
 
     loop {
-        let (socket, _remote_addr) = listener.accept().await.context("listener accept error")?;
+        let (tcp_stream, _remote_addr) =
+            listener.accept().await.context("listener accept error")?;
+
+        if let Err(e) = tcp_stream.set_nodelay(true) {
+            warn!("error setting tcp no delay {:?}", e);
+            continue;
+        };
 
         let connection_guard = Arc::clone(&connection_tracker_service)
             .add_connection()
@@ -42,22 +48,36 @@ pub async fn run(
 
         let tower_service = unwrap_infallible(make_service.call(&connection_guard.id).await);
 
-        tokio::spawn(handle_connection(connection_guard, socket, tower_service));
+        tokio::spawn(handle_connection(
+            connection_guard,
+            tcp_stream,
+            tower_service,
+        ));
     }
 }
 
 async fn create_listener(
     server_configuration: &ServerConfiguration,
-) -> anyhow::Result<UnixListener> {
-    let path = Path::new(&server_configuration.unix_socket_path);
+) -> anyhow::Result<TcpListener> {
+    let tcp_listener = TcpListener::bind(&server_configuration.bind_address)
+        .await
+        .with_context(|| {
+            format!(
+                "TCP server bind error address = {:?}",
+                server_configuration.bind_address
+            )
+        })?;
 
-    let remove_result = tokio::fs::remove_file(path).await;
-    debug!("remove_result = {:?}", remove_result);
+    let local_addr = tcp_listener.local_addr().with_context(|| {
+        format!(
+            "TCP server local_addr error address = {:?}",
+            server_configuration.bind_address
+        )
+    })?;
 
-    let unix_listener = UnixListener::bind(path).context("UnixListener::bind error")?;
-    info!("listening on unix path: {:?}", path);
+    info!("listening on tcp {:?}", local_addr);
 
-    Ok(unix_listener)
+    Ok(tcp_listener)
 }
 
 #[instrument(
@@ -69,7 +89,7 @@ async fn create_listener(
 )]
 async fn handle_connection(
     connection_guard: ConnectionGuard,
-    socket: UnixStream,
+    socket: TcpStream,
     tower_service: AddExtension<Router, ConnectInfo<ConnectionID>>,
 ) {
     info!("begin handle_connection");
@@ -82,6 +102,9 @@ async fn handle_connection(
     });
 
     if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
+        .http2()
+        .keep_alive_interval(Duration::from_secs(20))
+        .keep_alive_timeout(Duration::from_secs(20))
         .serve_connection(socket, hyper_service)
         .await
     {
