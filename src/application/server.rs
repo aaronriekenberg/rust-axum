@@ -7,7 +7,7 @@ use axum::{
 };
 
 use hyper_util::{
-    rt::{TokioExecutor, TokioIo, TokioTimer},
+    rt::{TokioExecutor, TokioIo},
     server,
 };
 
@@ -17,7 +17,7 @@ use tower::Service;
 
 use tracing::{debug, info, instrument, warn};
 
-use std::{convert::Infallible, sync::Arc, time::Duration};
+use std::{convert::Infallible, sync::Arc};
 
 use crate::{
     config::ServerConfiguration,
@@ -102,10 +102,6 @@ async fn handle_connection(
     });
 
     if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
-        .http2()
-        .keep_alive_interval(Duration::from_secs(20))
-        .keep_alive_timeout(Duration::from_secs(20))
-        .timer(TokioTimer::new())
         .serve_connection(socket, hyper_service)
         .await
     {
