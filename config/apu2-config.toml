@@ -2,7 +2,7 @@
 bind_address = "[::1]:8080"
 request_timeout = "10seconds"
 context = "/apu_api/v1"
-connection = { max_lifetime = "2minutes", graceful_shutdown_timeout = "5seconds" }
+connection = { max_lifetime = "5minutes", graceful_shutdown_timeout = "5seconds" }
 
 [command_configuration]
 max_concurrent_commands = 10
