@@ -17,7 +17,7 @@ use tower::Service;
 
 use tracing::{debug, info, instrument, warn};
 
-use std::{convert::Infallible, sync::Arc};
+use std::{convert::Infallible, net::SocketAddr, sync::Arc};
 
 use crate::{
     config::ServerConfiguration,
@@ -34,8 +34,7 @@ pub async fn run(
     let mut make_service = routes.into_make_service_with_connect_info::<ConnectionID>();
 
     loop {
-        let (tcp_stream, _remote_addr) =
-            listener.accept().await.context("listener accept error")?;
+        let (tcp_stream, remote_addr) = listener.accept().await.context("listener accept error")?;
 
         if let Err(e) = tcp_stream.set_nodelay(true) {
             warn!("error setting tcp no delay {:?}", e);
@@ -51,6 +50,7 @@ pub async fn run(
         tokio::spawn(handle_connection(
             connection_guard,
             tcp_stream,
+            remote_addr,
             tower_service,
         ));
     }
@@ -90,9 +90,10 @@ async fn create_listener(
 async fn handle_connection(
     connection_guard: ConnectionGuard,
     socket: TcpStream,
+    remote_addr: SocketAddr,
     tower_service: AddExtension<Router, ConnectInfo<ConnectionID>>,
 ) {
-    info!("begin handle_connection");
+    info!("begin handle_connection remote_addr = {remote_addr:?}");
 
     let socket = TokioIo::new(socket);
 
