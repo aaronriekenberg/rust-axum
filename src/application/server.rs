@@ -17,7 +17,7 @@ use tower::Service;
 
 use tracing::{debug, info, instrument, warn};
 
-use std::{convert::Infallible, net::SocketAddr, sync::Arc};
+use std::{convert::Infallible, net::SocketAddr, sync::Arc, time::Duration};
 
 use crate::{
     config::ServerConfiguration,
@@ -32,6 +32,16 @@ pub async fn run(
     let listener = create_listener(server_configuration).await?;
 
     let mut make_service = routes.into_make_service_with_connect_info::<ConnectionID>();
+
+    let connection_timeout_durations = vec![
+        server_configuration.connection.max_lifetime,
+        server_configuration.connection.graceful_shutdown_timeout,
+    ];
+
+    debug!(
+        "connection_timeout_durations = {:?}",
+        connection_timeout_durations
+    );
 
     loop {
         let (tcp_stream, remote_addr) = listener.accept().await.context("listener accept error")?;
@@ -51,6 +61,7 @@ pub async fn run(
             connection_guard,
             tcp_stream,
             remote_addr,
+            connection_timeout_durations.clone(),
             tower_service,
         ));
     }
@@ -91,6 +102,7 @@ async fn handle_connection(
     connection_guard: ConnectionGuard,
     socket: TcpStream,
     remote_addr: SocketAddr,
+    connection_timeout_durations: Vec<Duration>,
     tower_service: AddExtension<Router, ConnectInfo<ConnectionID>>,
 ) {
     info!("begin handle_connection remote_addr = {remote_addr:?}");
@@ -102,11 +114,26 @@ async fn handle_connection(
         tower_service.clone().call(request)
     });
 
-    if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
-        .serve_connection(socket, hyper_service)
-        .await
-    {
-        warn!("failed to serve connection: {err:#}");
+    let builder = server::conn::auto::Builder::new(TokioExecutor::new());
+
+    let hyper_conn = builder.serve_connection(socket, hyper_service);
+    tokio::pin!(hyper_conn);
+
+    for (iter, sleep_duration) in connection_timeout_durations.iter().enumerate() {
+        debug!("iter = {} sleep_duration = {:?}", iter, sleep_duration);
+        tokio::select! {
+            res = hyper_conn.as_mut() => {
+                match res {
+                    Ok(()) => debug!("after polling conn, no error"),
+                    Err(e) =>  warn!("error serving connection: {:?}", e),
+                };
+                break;
+            }
+            _ = tokio::time::sleep(*sleep_duration) => {
+                info!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
+                hyper_conn.as_mut().graceful_shutdown();
+            }
+        }
     }
 
     info!(

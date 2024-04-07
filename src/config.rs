@@ -9,11 +9,20 @@ use tokio::{fs::File, io::AsyncReadExt, sync::OnceCell};
 use std::time::Duration;
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct ServerConnectionConfiguration {
+    #[serde(with = "humantime_serde")]
+    pub max_lifetime: Duration,
+    #[serde(with = "humantime_serde")]
+    pub graceful_shutdown_timeout: Duration,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ServerConfiguration {
     pub bind_address: String,
     #[serde(with = "humantime_serde")]
     pub request_timeout: Duration,
     pub context: String,
+    pub connection: ServerConnectionConfiguration,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
