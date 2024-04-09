@@ -55,7 +55,7 @@ pub async fn run(
             .add_connection()
             .await;
 
-        let tower_service = unwrap_infallible(make_service.call(&connection_guard.id).await);
+        let tower_service = unwrap_infallible(make_service.call(connection_guard.id).await);
 
         tokio::spawn(handle_connection(
             connection_guard,
@@ -149,9 +149,9 @@ fn unwrap_infallible<T>(result: Result<T, Infallible>) -> T {
     }
 }
 
-impl connect_info::Connected<&ConnectionID> for ConnectionID {
-    fn connect_info(id: &ConnectionID) -> Self {
+impl connect_info::Connected<ConnectionID> for ConnectionID {
+    fn connect_info(id: ConnectionID) -> Self {
         debug!("in connect_info id = {id:?}");
-        *id
+        id
     }
 }
