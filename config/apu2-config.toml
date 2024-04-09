@@ -1,12 +1,12 @@
 [server_configuration]
 bind_address = "[::1]:8080"
-request_timeout = "10seconds"
+request_timeout = "10 seconds"
 context = "/apu_api/v1"
-connection = { max_lifetime = "5minutes", graceful_shutdown_timeout = "5seconds" }
+connection = { max_lifetime = "5 minutes", graceful_shutdown_timeout = "15 seconds" }
 
 [command_configuration]
 max_concurrent_commands = 10
-semaphore_acquire_timeout = "200msec"
+semaphore_acquire_timeout = "200 msec"
 commands = [
     { id = "chronyc_sources", description = "chronyc sources", command = "/usr/bin/chronyc", args = [
         "-a",
