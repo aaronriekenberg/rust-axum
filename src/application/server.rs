@@ -57,13 +57,15 @@ pub async fn run(
 
         let tower_service = unwrap_infallible(make_service.call(connection_guard.id).await);
 
-        tokio::spawn(handle_connection(
+        let connection = Connection {
             connection_guard,
             tcp_stream,
             remote_addr,
-            connection_timeout_durations.clone(),
+            connection_timeout_durations: connection_timeout_durations.clone(),
             tower_service,
-        ));
+        };
+
+        tokio::spawn(connection.run());
     }
 }
 
@@ -91,55 +93,59 @@ async fn create_listener(
     Ok(tcp_listener)
 }
 
-#[instrument(
-    name = "conn",
-    skip_all,
-    fields(
-        id = connection_guard.id.as_usize(),
-    )
-)]
-async fn handle_connection(
+struct Connection {
     connection_guard: ConnectionGuard,
-    socket: TcpStream,
+    tcp_stream: TcpStream,
     remote_addr: SocketAddr,
     connection_timeout_durations: Vec<Duration>,
     tower_service: AddExtension<Router, ConnectInfo<ConnectionID>>,
-) {
-    info!("begin handle_connection remote_addr = {remote_addr:?}");
+}
 
-    let socket = TokioIo::new(socket);
+impl Connection {
+    #[instrument(
+        name = "conn",
+        skip_all,
+        fields(
+            id = self.connection_guard.id.as_usize(),
+        )
+    )]
+    async fn run(self) {
+        info!("begin Connection::run remote_addr = {:?}", self.remote_addr);
 
-    let hyper_service = hyper::service::service_fn(|request| {
-        connection_guard.increment_num_requests();
-        tower_service.clone().call(request)
-    });
+        let socket = TokioIo::new(self.tcp_stream);
 
-    let builder = server::conn::auto::Builder::new(TokioExecutor::new());
+        let hyper_service = hyper::service::service_fn(|request| {
+            self.connection_guard.increment_num_requests();
+            self.tower_service.clone().call(request)
+        });
 
-    let hyper_conn = builder.serve_connection(socket, hyper_service);
-    tokio::pin!(hyper_conn);
+        let builder = server::conn::auto::Builder::new(TokioExecutor::new());
 
-    for (iter, sleep_duration) in connection_timeout_durations.iter().enumerate() {
-        debug!("iter = {} sleep_duration = {:?}", iter, sleep_duration);
-        tokio::select! {
-            res = hyper_conn.as_mut() => {
-                match res {
-                    Ok(()) => debug!("after polling conn, no error"),
-                    Err(e) =>  warn!("error serving connection: {:?}", e),
-                };
-                break;
-            }
-            _ = tokio::time::sleep(*sleep_duration) => {
-                info!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
-                hyper_conn.as_mut().graceful_shutdown();
+        let hyper_conn = builder.serve_connection(socket, hyper_service);
+        tokio::pin!(hyper_conn);
+
+        for (iter, sleep_duration) in self.connection_timeout_durations.iter().enumerate() {
+            debug!("iter = {} sleep_duration = {:?}", iter, sleep_duration);
+            tokio::select! {
+                res = hyper_conn.as_mut() => {
+                    match res {
+                        Ok(()) => debug!("after polling conn, no error"),
+                        Err(e) =>  warn!("error serving connection: {:?}", e),
+                    };
+                    break;
+                }
+                _ = tokio::time::sleep(*sleep_duration) => {
+                    info!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
+                    hyper_conn.as_mut().graceful_shutdown();
+                }
             }
         }
-    }
 
-    info!(
-        "end handle_connection num requests = {}",
-        connection_guard.num_requests(),
-    );
+        info!(
+            "end Connection::run num requests = {}",
+            self.connection_guard.num_requests(),
+        );
+    }
 }
 
 fn unwrap_infallible<T>(result: Result<T, Infallible>) -> T {
