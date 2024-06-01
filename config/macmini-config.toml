@@ -29,6 +29,7 @@ commands = [
     { id = "timedatectl_timesync_status", description = "timedatectl timesync-status", command = "/usr/bin/timedatectl", args = [
         "timesync-status",
     ] },
+    { id = "sensors", description = "sensors", command = "/usr/bin/sensors" },
     { id = "top", description = "top", command = "/usr/bin/top", args = [
         "-b",
         "-n1",
