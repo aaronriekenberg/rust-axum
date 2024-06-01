@@ -8,23 +8,8 @@ connection = { max_lifetime = "5 minutes", graceful_shutdown_timeout = "15 secon
 max_concurrent_commands = 10
 semaphore_acquire_timeout = "200 msec"
 commands = [
-    { id = "chronyc_sources", description = "chronyc sources", command = "/usr/bin/chronyc", args = [
-        "-a",
-        "-n",
-        "sources",
-        "-v",
-    ] },
-    { id = "chronyc_sourcestats", description = "chronyc sourcestats", command = "/usr/bin/chronyc", args = [
-        "-a",
-        "-n",
-        "sourcestats",
-        "-v",
-    ] },
     { id = "df", description = "df", command = "/usr/bin/df", args = [
         "-h",
-    ] },
-    { id = "edac-util", description = "edac-util -v", command = "/usr/bin/edac-util", args = [
-        "-v",
     ] },
     { id = "git_log", description = "git log", command = "/usr/bin/git", args = [
         "log",
@@ -41,7 +26,9 @@ commands = [
         "-a",
         "-n",
     ] },
-    { id = "sensors", description = "sensors", command = "/usr/bin/sensors" },
+    { id = "timedatectl_timesync_status", description = "timedatectl timesync-status", command = "/usr/bin/timedatectl", args = [
+        "timesync-status",
+    ] },
     { id = "top", description = "top", command = "/usr/bin/top", args = [
         "-b",
         "-n1",
