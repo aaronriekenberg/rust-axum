@@ -14,6 +14,7 @@ pub struct ServerConnectionConfiguration {
     pub max_lifetime: Duration,
     #[serde(with = "humantime_serde")]
     pub graceful_shutdown_timeout: Duration,
+    pub tcp_nodelay: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

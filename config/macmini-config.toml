@@ -1,8 +1,8 @@
 [server_configuration]
-bind_address = "[::1]:8080"
+bind_address = "[::]:8080"
 request_timeout = "10 seconds"
 context = "/api/v1"
-connection = { max_lifetime = "5 minutes", graceful_shutdown_timeout = "15 seconds" }
+connection = { max_lifetime = "5 minutes", graceful_shutdown_timeout = "15 seconds", tcp_nodelay = false }
 
 [command_configuration]
 max_concurrent_commands = 10

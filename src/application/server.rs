@@ -39,14 +39,14 @@ pub async fn run(
     ];
 
     debug!(
-        "connection_timeout_durations = {:?}",
-        connection_timeout_durations
+        "connection_timeout_durations = {:?} tcp_nodelay = {}",
+        connection_timeout_durations, server_configuration.connection.tcp_nodelay
     );
 
     loop {
         let (tcp_stream, remote_addr) = listener.accept().await.context("listener accept error")?;
 
-        if let Err(e) = tcp_stream.set_nodelay(true) {
+        if let Err(e) = tcp_stream.set_nodelay(server_configuration.connection.tcp_nodelay) {
             warn!("error setting tcp no delay {:?}", e);
             continue;
         };
