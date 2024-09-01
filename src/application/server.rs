@@ -46,10 +46,15 @@ pub async fn run(
     loop {
         let (tcp_stream, remote_addr) = listener.accept().await.context("listener accept error")?;
 
-        if let Err(e) = tcp_stream.set_nodelay(server_configuration.connection.tcp_nodelay) {
-            warn!("error setting tcp no delay {:?}", e);
-            continue;
-        };
+        if server_configuration.connection.tcp_nodelay {
+            info!("calling tcp_stream.set_nodelay(true)");
+            if let Err(e) = tcp_stream.set_nodelay(true) {
+                warn!("error setting tcp no delay {:?}", e);
+                continue;
+            };
+        } else {
+            info!("NOT calling tcp_stream.set_nodelay");
+        }
 
         let connection_guard = Arc::clone(&connection_tracker_service)
             .add_connection()
