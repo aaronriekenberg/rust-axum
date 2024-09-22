@@ -7,7 +7,7 @@ use axum::{
 };
 
 use hyper_util::{
-    rt::{TokioExecutor, TokioIo},
+    rt::{TokioExecutor, TokioIo, TokioTimer},
     server,
 };
 
@@ -124,7 +124,10 @@ impl Connection {
             self.tower_service.clone().call(request)
         });
 
-        let builder = server::conn::auto::Builder::new(TokioExecutor::new());
+        let mut builder = server::conn::auto::Builder::new(TokioExecutor::new());
+
+        builder.http1().timer(TokioTimer::new());
+        builder.http2().timer(TokioTimer::new());
 
         let hyper_conn = builder.serve_connection(socket, hyper_service);
         tokio::pin!(hyper_conn);
