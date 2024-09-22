@@ -12,10 +12,7 @@ use tokio::{
 
 use tracing::warn;
 
-use crate::{
-    config::{self, CommandInfo},
-    utils::time::current_local_date_time_string,
-};
+use crate::config::{self, CommandInfo};
 
 #[async_trait]
 pub trait CommandsService {
@@ -100,7 +97,7 @@ impl CommandsServiceImpl {
         drop(permit);
 
         RunCommandDTO {
-            now: current_local_date_time_string(),
+            now: jiff::Zoned::now().to_string(),
             command_duration_ms: command_duration.as_millis(),
             command_info,
             command_output: match command_result {

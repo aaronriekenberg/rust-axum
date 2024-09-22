@@ -15,10 +15,7 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
-    time::SystemTime,
 };
-
-use crate::utils::time::{local_date_time_to_string, LocalDateTime};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct ConnectionID(usize);
@@ -32,7 +29,7 @@ impl ConnectionID {
 #[derive(Debug)]
 struct ConnectionInfo {
     id: ConnectionID,
-    creation_time: SystemTime,
+    creation_timestamp: jiff::Timestamp,
     creation_instant: Instant,
     num_requests: Arc<AtomicUsize>,
 }
@@ -41,7 +38,7 @@ impl ConnectionInfo {
     fn new(id: ConnectionID) -> Self {
         Self {
             id,
-            creation_time: SystemTime::now(),
+            creation_timestamp: jiff::Timestamp::now(),
             creation_instant: Instant::now(),
             num_requests: Arc::new(AtomicUsize::new(0)),
         }
@@ -174,9 +171,7 @@ impl From<Arc<ConnectionInfo>> for ConnectionInfoSnapshotDTO {
 
         Self {
             id: connection_info.id.as_usize(),
-            creation_time: local_date_time_to_string(&LocalDateTime::from(
-                connection_info.creation_time,
-            )),
+            creation_time: connection_info.creation_timestamp.to_string(),
             age,
             num_requests: connection_info.num_requests(),
         }
