@@ -29,7 +29,7 @@ impl ConnectionID {
 #[derive(Debug)]
 struct ConnectionInfo {
     id: ConnectionID,
-    creation_timestamp: jiff::Timestamp,
+    creation_timestamp: jiff::Zoned,
     creation_instant: Instant,
     num_requests: Arc<AtomicUsize>,
 }
@@ -38,7 +38,7 @@ impl ConnectionInfo {
     fn new(id: ConnectionID) -> Self {
         Self {
             id,
-            creation_timestamp: jiff::Timestamp::now(),
+            creation_timestamp: jiff::Zoned::now(),
             creation_instant: Instant::now(),
             num_requests: Arc::new(AtomicUsize::new(0)),
         }
