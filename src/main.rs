@@ -18,6 +18,7 @@ fn log_version_info() {
     for (key, value) in crate::service::version_service::verison_info() {
         info!("{}: {}", key, value);
     }
+    info!("using tikv_jemallocator::Jemalloc");
 }
 
 fn process_name() -> String {
