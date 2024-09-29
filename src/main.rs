@@ -8,6 +8,11 @@ use anyhow::Context;
 
 use tracing::{error, info};
 
+use tikv_jemallocator::Jemalloc;
+
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 fn log_version_info() {
     info!("Version Info:");
     for (key, value) in crate::service::version_service::verison_info() {
