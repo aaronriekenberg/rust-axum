@@ -26,7 +26,10 @@ pub async fn run(config_file: String) -> anyhow::Result<()> {
     let api_routes =
         controller::create_api_routes(command_service, Arc::clone(&connection_tracker_service));
 
+    let health_routes = controller::create_health_routes();
+
     let routes = Router::new()
+        .nest("/health", health_routes)
         .nest(&server_configuration.context, api_routes)
         // Add middleware to all routes
         .layer(
