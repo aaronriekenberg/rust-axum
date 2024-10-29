@@ -157,8 +157,10 @@ impl Connection {
 }
 
 fn unwrap_infallible<T>(result: Result<T, Infallible>) -> T {
-    let Ok(value) = result;
-    value
+    match result {
+        Ok(value) => value,
+        Err(err) => match err {},
+    }
 }
 
 impl connect_info::Connected<ConnectionID> for ConnectionID {
