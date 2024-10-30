@@ -6,11 +6,16 @@ mod version_info;
 
 use axum::{routing::get, Router};
 
-use crate::service::{
-    command_service::DynCommandsService, connection_service::DynConnectionTrackerService,
+use std::sync::Arc;
+
+use crate::{
+    config,
+    service::{
+        command_service::DynCommandsService, connection_service::DynConnectionTrackerService,
+    },
 };
 
-pub fn create_api_routes(
+fn create_api_routes(
     commands_service: DynCommandsService,
     connection_tracker_service: DynConnectionTrackerService,
 ) -> Router {
@@ -30,6 +35,13 @@ pub fn create_api_routes(
         .route("/version_info", get(version_info::version_info))
 }
 
-pub fn create_health_routes() -> Router {
-    Router::new().route("/", get(health::health))
+pub fn create_routes(
+    server_configuration: &config::ServerConfiguration,
+    commands_service: DynCommandsService,
+    connection_tracker_service: DynConnectionTrackerService,
+) -> Router {
+    Router::new().route("/health", get(health::health)).nest(
+        &server_configuration.context,
+        create_api_routes(commands_service, Arc::clone(&connection_tracker_service)),
+    )
 }
