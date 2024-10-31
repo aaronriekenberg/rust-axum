@@ -6,8 +6,6 @@ mod version_info;
 
 use axum::{routing::get, Router};
 
-use std::sync::Arc;
-
 use crate::{
     config,
     service::{
@@ -42,6 +40,6 @@ pub fn create_routes(
 ) -> Router {
     Router::new().route("/health", get(health::health)).nest(
         &server_configuration.context,
-        create_api_routes(commands_service, Arc::clone(&connection_tracker_service)),
+        create_api_routes(commands_service, connection_tracker_service),
     )
 }
