@@ -11,14 +11,14 @@ use serde::Serialize;
 
 use std::{
     collections::BTreeMap,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    sync::{atomic::AtomicUsize, Arc},
     time::SystemTime,
 };
 
 use crate::utils::time::system_time_to_string;
+
+const CONNECTION_METRICS_ORDERING: std::sync::atomic::Ordering =
+    std::sync::atomic::Ordering::Relaxed;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct ConnectionID(usize);
@@ -48,7 +48,7 @@ impl ConnectionInfo {
     }
 
     fn num_requests(&self) -> usize {
-        self.num_requests.load(Ordering::Relaxed)
+        self.num_requests.load(CONNECTION_METRICS_ORDERING)
     }
 
     fn age(&self, now: Instant) -> Duration {
@@ -76,11 +76,11 @@ impl ConnectionGuard {
     }
 
     pub fn increment_num_requests(&self) {
-        self.num_requests.fetch_add(1, Ordering::Relaxed);
+        self.num_requests.fetch_add(1, CONNECTION_METRICS_ORDERING);
     }
 
     pub fn num_requests(&self) -> usize {
-        self.num_requests.load(Ordering::Relaxed)
+        self.num_requests.load(CONNECTION_METRICS_ORDERING)
     }
 }
 
@@ -140,15 +140,15 @@ impl ConnectionTrackerServiceImpl {
             connection_errors: self
                 .atomic_metrics
                 .connection_errors
-                .load(Ordering::Relaxed),
+                .load(CONNECTION_METRICS_ORDERING),
             connection_initial_timeouts: self
                 .atomic_metrics
                 .connection_initial_timeouts
-                .load(Ordering::Relaxed),
+                .load(CONNECTION_METRICS_ORDERING),
             connection_final_timeouts: self
                 .atomic_metrics
                 .connection_final_timeouts
-                .load(Ordering::Relaxed),
+                .load(CONNECTION_METRICS_ORDERING),
             open_connections: state.open_connections().cloned().collect(),
         }
     }
@@ -169,19 +169,19 @@ impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
     fn increment_connection_errors(&self) {
         self.atomic_metrics
             .connection_errors
-            .fetch_add(1, Ordering::Relaxed);
+            .fetch_add(1, CONNECTION_METRICS_ORDERING);
     }
 
     fn increment_connection_initial_timeouts(&self) {
         self.atomic_metrics
             .connection_initial_timeouts
-            .fetch_add(1, Ordering::Relaxed);
+            .fetch_add(1, CONNECTION_METRICS_ORDERING);
     }
 
     fn increment_connection_final_timeouts(&self) {
         self.atomic_metrics
             .connection_final_timeouts
-            .fetch_add(1, Ordering::Relaxed);
+            .fetch_add(1, CONNECTION_METRICS_ORDERING);
     }
 }
 
