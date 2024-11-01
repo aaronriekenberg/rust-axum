@@ -1,10 +1,8 @@
-use ahash::AHashMap;
-
 use tokio::time::{Duration, Instant};
 
 use tracing::debug;
 
-use std::{cmp, sync::Arc};
+use std::{cmp, collections::HashMap, sync::Arc};
 
 use super::{ConnectionGuard, ConnectionID, ConnectionInfo, ConnectionTrackerServiceImpl};
 
@@ -42,7 +40,7 @@ impl ConnectionTrackerMetrics {
 #[derive(Default)]
 pub struct ConnectionTrackerState {
     next_connection_id: usize,
-    id_to_connection_info: AHashMap<ConnectionID, Arc<ConnectionInfo>>,
+    id_to_connection_info: HashMap<ConnectionID, Arc<ConnectionInfo>>,
     metrics: ConnectionTrackerMetrics,
 }
 
@@ -50,7 +48,6 @@ impl ConnectionTrackerState {
     pub fn new() -> Self {
         Self {
             next_connection_id: 1,
-            id_to_connection_info: AHashMap::new(),
             ..Default::default()
         }
     }
