@@ -33,7 +33,7 @@ pub async fn run(
 
     let mut make_service = routes.into_make_service_with_connect_info::<ConnectionID>();
 
-    let connection_timeout_durations = vec![
+    let connection_timeout_durations = [
         server_configuration.connection.max_lifetime,
         server_configuration.connection.graceful_shutdown_timeout,
     ];
@@ -66,7 +66,7 @@ pub async fn run(
             connection_guard,
             tcp_stream,
             remote_addr,
-            connection_timeout_durations: connection_timeout_durations.clone(),
+            connection_timeout_durations,
             tower_service,
         };
 
@@ -102,7 +102,7 @@ struct Connection {
     connection_guard: ConnectionGuard,
     tcp_stream: TcpStream,
     remote_addr: SocketAddr,
-    connection_timeout_durations: Vec<Duration>,
+    connection_timeout_durations: [Duration; 2],
     tower_service: AddExtension<Router, ConnectInfo<ConnectionID>>,
 }
 
@@ -138,7 +138,7 @@ impl Connection {
                 res = hyper_conn.as_mut() => {
                     match res {
                         Ok(()) => debug!("after polling conn, no error"),
-                        Err(e) =>  warn!("error serving connection: {:?}", e),
+                        Err(e) => warn!("error serving connection: {:?}", e),
                     };
                     break;
                 }
