@@ -99,6 +99,9 @@ impl Drop for ConnectionGuard {
 pub trait ConnectionTrackerService {
     async fn add_connection(self: Arc<Self>) -> ConnectionGuard;
     async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO;
+    fn increment_connection_errors(&self);
+    fn increment_connection_intial_timeouts(&self);
+    fn increment_connection_final_timeouts(&self);
 }
 
 pub type DynConnectionTrackerService = Arc<dyn ConnectionTrackerService + Send + Sync>;
@@ -109,12 +112,14 @@ pub fn new_connection_tracker_service() -> DynConnectionTrackerService {
 
 struct ConnectionTrackerServiceImpl {
     state: RwLock<internal::ConnectionTrackerState>,
+    atomic_metrics: internal::AtomicConnectionTrackerMetrics,
 }
 
 impl ConnectionTrackerServiceImpl {
     fn new() -> Arc<Self> {
         Arc::new(Self {
             state: RwLock::new(internal::ConnectionTrackerState::new()),
+            atomic_metrics: internal::AtomicConnectionTrackerMetrics::default(),
         })
     }
 
@@ -132,6 +137,18 @@ impl ConnectionTrackerServiceImpl {
             min_connection_lifetime: state.min_connection_lifetime(),
             max_connection_lifetime: state.max_connection_lifetime(),
             max_requests_per_connection: state.max_requests_per_connection(),
+            connection_errors: self
+                .atomic_metrics
+                .connection_errors
+                .load(Ordering::Relaxed),
+            connection_initial_timeouts: self
+                .atomic_metrics
+                .connection_initial_timeouts
+                .load(Ordering::Relaxed),
+            connection_final_timeouts: self
+                .atomic_metrics
+                .connection_final_timeouts
+                .load(Ordering::Relaxed),
             open_connections: state.open_connections().cloned().collect(),
         }
     }
@@ -148,6 +165,24 @@ impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
     async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO {
         self.connection_tracker_state_snapshot().await.into()
     }
+
+    fn increment_connection_errors(&self) {
+        self.atomic_metrics
+            .connection_errors
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn increment_connection_intial_timeouts(&self) {
+        self.atomic_metrics
+            .connection_initial_timeouts
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn increment_connection_final_timeouts(&self) {
+        self.atomic_metrics
+            .connection_final_timeouts
+            .fetch_add(1, Ordering::Relaxed);
+    }
 }
 
 struct ConnectionTrackerStateSnapshot {
@@ -155,6 +190,9 @@ struct ConnectionTrackerStateSnapshot {
     min_connection_lifetime: Duration,
     max_connection_lifetime: Duration,
     max_requests_per_connection: usize,
+    connection_errors: usize,
+    connection_initial_timeouts: usize,
+    connection_final_timeouts: usize,
     open_connections: Vec<Arc<ConnectionInfo>>,
 }
 
@@ -190,6 +228,9 @@ pub struct ConnectionTrackerStateSnapshotDTO {
     max_connection_lifetime: Duration,
     max_requests_per_connection: usize,
     num_open_connections: usize,
+    connection_errors: usize,
+    connection_initial_timeouts: usize,
+    connection_final_timeouts: usize,
     open_connections: Vec<ConnectionInfoSnapshotDTO>,
 }
 
@@ -225,6 +266,9 @@ impl From<ConnectionTrackerStateSnapshot> for ConnectionTrackerStateSnapshotDTO 
             max_connection_lifetime,
             max_requests_per_connection: state_snapshot.max_requests_per_connection,
             num_open_connections,
+            connection_errors: state_snapshot.connection_errors,
+            connection_initial_timeouts: state_snapshot.connection_initial_timeouts,
+            connection_final_timeouts: state_snapshot.connection_final_timeouts,
             open_connections,
         }
     }

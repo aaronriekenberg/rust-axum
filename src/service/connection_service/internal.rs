@@ -2,7 +2,11 @@ use tokio::time::{Duration, Instant};
 
 use tracing::debug;
 
-use std::{cmp, collections::HashMap, sync::Arc};
+use std::{
+    cmp,
+    collections::HashMap,
+    sync::{atomic::AtomicUsize, Arc},
+};
 
 use super::{ConnectionGuard, ConnectionID, ConnectionInfo, ConnectionTrackerServiceImpl};
 
@@ -35,6 +39,12 @@ impl ConnectionTrackerMetrics {
             removed_connection_info.num_requests(),
         );
     }
+}
+#[derive(Default)]
+pub struct AtomicConnectionTrackerMetrics {
+    pub connection_errors: AtomicUsize,
+    pub connection_initial_timeouts: AtomicUsize,
+    pub connection_final_timeouts: AtomicUsize,
 }
 
 #[derive(Default)]

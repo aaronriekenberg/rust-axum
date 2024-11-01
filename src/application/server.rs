@@ -64,6 +64,7 @@ pub async fn run(
 
         let connection = Connection {
             connection_guard,
+            connection_tracker_service: Arc::clone(&connection_tracker_service),
             tcp_stream,
             remote_addr,
             connection_timeout_durations,
@@ -100,6 +101,7 @@ async fn create_listener(
 
 struct Connection {
     connection_guard: ConnectionGuard,
+    connection_tracker_service: DynConnectionTrackerService,
     tcp_stream: TcpStream,
     remote_addr: SocketAddr,
     connection_timeout_durations: [Duration; 2],
@@ -115,7 +117,7 @@ impl Connection {
         )
     )]
     async fn run(self) {
-        info!("begin Connection::run remote_addr = {:?}", self.remote_addr);
+        debug!("begin Connection::run remote_addr = {:?}", self.remote_addr);
 
         let socket = TokioIo::new(self.tcp_stream);
 
@@ -138,18 +140,26 @@ impl Connection {
                 res = hyper_conn.as_mut() => {
                     match res {
                         Ok(()) => debug!("after polling conn, no error"),
-                        Err(e) => warn!("error serving connection: {:?}", e),
+                        Err(e) => {
+                            warn!("error serving connection: {:?}", e);
+                            self.connection_tracker_service.increment_connection_errors();
+                        },
                     };
                     break;
                 }
                 _ = tokio::time::sleep(*sleep_duration) => {
                     info!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
                     hyper_conn.as_mut().graceful_shutdown();
+                    if iter == 0 {
+                        self.connection_tracker_service.increment_connection_intial_timeouts();
+                    }else{
+                        self.connection_tracker_service.increment_connection_final_timeouts();
+                    }
                 }
             }
         }
 
-        info!(
+        debug!(
             "end Connection::run num requests = {}",
             self.connection_guard.num_requests(),
         );
