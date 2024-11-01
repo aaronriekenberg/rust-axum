@@ -148,11 +148,11 @@ impl Connection {
                     break;
                 }
                 _ = tokio::time::sleep(*sleep_duration) => {
-                    info!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
+                    debug!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
                     hyper_conn.as_mut().graceful_shutdown();
                     if iter == 0 {
                         self.connection_tracker_service.increment_connection_initial_timeouts();
-                    }else{
+                    } else {
                         self.connection_tracker_service.increment_connection_final_timeouts();
                     }
                 }
