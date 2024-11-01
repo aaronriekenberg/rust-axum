@@ -151,7 +151,7 @@ impl Connection {
                     info!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
                     hyper_conn.as_mut().graceful_shutdown();
                     if iter == 0 {
-                        self.connection_tracker_service.increment_connection_intial_timeouts();
+                        self.connection_tracker_service.increment_connection_initial_timeouts();
                     }else{
                         self.connection_tracker_service.increment_connection_final_timeouts();
                     }

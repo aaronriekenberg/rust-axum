@@ -100,7 +100,7 @@ pub trait ConnectionTrackerService {
     async fn add_connection(self: Arc<Self>) -> ConnectionGuard;
     async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO;
     fn increment_connection_errors(&self);
-    fn increment_connection_intial_timeouts(&self);
+    fn increment_connection_initial_timeouts(&self);
     fn increment_connection_final_timeouts(&self);
 }
 
@@ -172,7 +172,7 @@ impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
             .fetch_add(1, Ordering::Relaxed);
     }
 
-    fn increment_connection_intial_timeouts(&self) {
+    fn increment_connection_initial_timeouts(&self) {
         self.atomic_metrics
             .connection_initial_timeouts
             .fetch_add(1, Ordering::Relaxed);
