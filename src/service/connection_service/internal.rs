@@ -49,22 +49,15 @@ pub struct AtomicConnectionTrackerMetrics {
 
 #[derive(Default)]
 pub struct ConnectionTrackerState {
-    next_connection_id: usize,
+    previous_connection_id: usize,
     id_to_connection_info: HashMap<ConnectionID, Arc<ConnectionInfo>>,
     metrics: ConnectionTrackerMetrics,
 }
 
 impl ConnectionTrackerState {
-    pub fn new() -> Self {
-        Self {
-            next_connection_id: 1,
-            ..Default::default()
-        }
-    }
-
     fn next_connection_id(&mut self) -> ConnectionID {
-        let connection_id = self.next_connection_id;
-        self.next_connection_id += 1;
+        self.previous_connection_id += 1;
+        let connection_id = self.previous_connection_id;
         ConnectionID(connection_id)
     }
 

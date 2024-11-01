@@ -118,7 +118,7 @@ struct ConnectionTrackerServiceImpl {
 impl ConnectionTrackerServiceImpl {
     fn new() -> Arc<Self> {
         Arc::new(Self {
-            state: RwLock::new(internal::ConnectionTrackerState::new()),
+            state: RwLock::new(internal::ConnectionTrackerState::default()),
             atomic_metrics: internal::AtomicConnectionTrackerMetrics::default(),
         })
     }
