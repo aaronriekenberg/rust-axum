@@ -227,10 +227,10 @@ pub struct ConnectionTrackerStateSnapshotDTO {
     #[serde(with = "humantime_serde")]
     max_connection_lifetime: Duration,
     max_requests_per_connection: usize,
-    num_open_connections: usize,
     connection_errors: usize,
     connection_initial_timeouts: usize,
     connection_final_timeouts: usize,
+    num_open_connections: usize,
     open_connections: Vec<ConnectionInfoSnapshotDTO>,
 }
 
@@ -265,10 +265,10 @@ impl From<ConnectionTrackerStateSnapshot> for ConnectionTrackerStateSnapshotDTO 
             min_connection_lifetime,
             max_connection_lifetime,
             max_requests_per_connection: state_snapshot.max_requests_per_connection,
-            num_open_connections,
             connection_errors: state_snapshot.connection_errors,
             connection_initial_timeouts: state_snapshot.connection_initial_timeouts,
             connection_final_timeouts: state_snapshot.connection_final_timeouts,
+            num_open_connections,
             open_connections,
         }
     }
