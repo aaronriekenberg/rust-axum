@@ -56,8 +56,8 @@ pub struct ConnectionTrackerState {
 
 impl ConnectionTrackerState {
     fn next_connection_id(&mut self) -> ConnectionID {
+        let connection_id = self.previous_connection_id + 1;
         self.previous_connection_id += 1;
-        let connection_id = self.previous_connection_id;
         ConnectionID(connection_id)
     }
 
