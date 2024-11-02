@@ -82,6 +82,21 @@ impl ConnectionGuard {
     pub fn num_requests(&self) -> usize {
         self.num_requests.load(CONNECTION_METRICS_ORDERING)
     }
+
+    pub fn increment_connection_errors(&self) {
+        self.connection_tracker_service
+            .increment_connection_errors();
+    }
+
+    pub fn increment_connection_initial_timeouts(&self) {
+        self.connection_tracker_service
+            .increment_connection_initial_timeouts();
+    }
+
+    pub fn increment_connection_final_timeouts(&self) {
+        self.connection_tracker_service
+            .increment_connection_final_timeouts();
+    }
 }
 
 impl Drop for ConnectionGuard {
@@ -99,9 +114,6 @@ impl Drop for ConnectionGuard {
 pub trait ConnectionTrackerService {
     async fn add_connection(self: Arc<Self>) -> ConnectionGuard;
     async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO;
-    fn increment_connection_errors(&self);
-    fn increment_connection_initial_timeouts(&self);
-    fn increment_connection_final_timeouts(&self);
 }
 
 pub type DynConnectionTrackerService = Arc<dyn ConnectionTrackerService + Send + Sync>;
@@ -152,19 +164,6 @@ impl ConnectionTrackerServiceImpl {
             open_connections: state.open_connections().cloned().collect(),
         }
     }
-}
-
-#[async_trait]
-impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
-    async fn add_connection(self: Arc<Self>) -> ConnectionGuard {
-        let mut state = self.state.write().await;
-
-        state.add_connection(Arc::clone(&self))
-    }
-
-    async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO {
-        self.connection_tracker_state_snapshot().await.into()
-    }
 
     fn increment_connection_errors(&self) {
         self.atomic_metrics
@@ -182,6 +181,19 @@ impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
         self.atomic_metrics
             .connection_final_timeouts
             .fetch_add(1, CONNECTION_METRICS_ORDERING);
+    }
+}
+
+#[async_trait]
+impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
+    async fn add_connection(self: Arc<Self>) -> ConnectionGuard {
+        let mut state = self.state.write().await;
+
+        state.add_connection(Arc::clone(&self))
+    }
+
+    async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO {
+        self.connection_tracker_state_snapshot().await.into()
     }
 }
 

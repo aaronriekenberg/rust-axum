@@ -64,7 +64,6 @@ pub async fn run(
 
         let connection = Connection {
             connection_guard,
-            connection_tracker_service: Arc::clone(&connection_tracker_service),
             tcp_stream,
             remote_addr,
             connection_timeout_durations,
@@ -101,7 +100,6 @@ async fn create_listener(
 
 struct Connection {
     connection_guard: ConnectionGuard,
-    connection_tracker_service: DynConnectionTrackerService,
     tcp_stream: TcpStream,
     remote_addr: SocketAddr,
     connection_timeout_durations: [Duration; 2],
@@ -142,7 +140,7 @@ impl Connection {
                         Ok(()) => debug!("after polling conn, no error"),
                         Err(e) => {
                             warn!("error serving connection: {:?}", e);
-                            self.connection_tracker_service.increment_connection_errors();
+                            self.connection_guard.increment_connection_errors();
                         },
                     };
                     break;
@@ -151,9 +149,9 @@ impl Connection {
                     debug!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
                     hyper_conn.as_mut().graceful_shutdown();
                     if iter == 0 {
-                        self.connection_tracker_service.increment_connection_initial_timeouts();
+                        self.connection_guard.increment_connection_initial_timeouts();
                     } else {
-                        self.connection_tracker_service.increment_connection_final_timeouts();
+                        self.connection_guard.increment_connection_final_timeouts();
                     }
                 }
             }
