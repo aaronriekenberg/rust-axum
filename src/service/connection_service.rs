@@ -30,6 +30,13 @@ impl ConnectionID {
 }
 
 #[derive(Debug)]
+pub enum ConnectionCounterMetricName {
+    Errors,
+    InitialTimeouts,
+    FinalTimeouts,
+}
+
+#[derive(Debug)]
 struct ConnectionInfo {
     id: ConnectionID,
     creation_time: SystemTime,
@@ -83,19 +90,9 @@ impl ConnectionGuard {
         self.num_requests.load(CONNECTION_METRICS_ORDERING)
     }
 
-    pub fn increment_connection_errors(&self) {
+    pub fn increment_counter_metric(&self, name: ConnectionCounterMetricName) {
         self.connection_tracker_service
-            .increment_connection_errors();
-    }
-
-    pub fn increment_connection_initial_timeouts(&self) {
-        self.connection_tracker_service
-            .increment_connection_initial_timeouts();
-    }
-
-    pub fn increment_connection_final_timeouts(&self) {
-        self.connection_tracker_service
-            .increment_connection_final_timeouts();
+            .increment_counter_metric(name);
     }
 }
 
@@ -124,14 +121,14 @@ pub fn new_connection_tracker_service() -> DynConnectionTrackerService {
 
 struct ConnectionTrackerServiceImpl {
     state: RwLock<internal::ConnectionTrackerState>,
-    atomic_metrics: internal::AtomicConnectionTrackerMetrics,
+    counter_metrics: internal::ConnectionCounterMetrics,
 }
 
 impl ConnectionTrackerServiceImpl {
     fn new() -> Arc<Self> {
         Arc::new(Self {
             state: RwLock::new(internal::ConnectionTrackerState::default()),
-            atomic_metrics: internal::AtomicConnectionTrackerMetrics::default(),
+            counter_metrics: internal::ConnectionCounterMetrics::default(),
         })
     }
 
@@ -150,37 +147,20 @@ impl ConnectionTrackerServiceImpl {
             max_connection_lifetime: state.max_connection_lifetime(),
             max_requests_per_connection: state.max_requests_per_connection(),
             connection_errors: self
-                .atomic_metrics
-                .connection_errors
-                .load(CONNECTION_METRICS_ORDERING),
+                .counter_metrics
+                .load(ConnectionCounterMetricName::Errors),
             connection_initial_timeouts: self
-                .atomic_metrics
-                .connection_initial_timeouts
-                .load(CONNECTION_METRICS_ORDERING),
+                .counter_metrics
+                .load(ConnectionCounterMetricName::InitialTimeouts),
             connection_final_timeouts: self
-                .atomic_metrics
-                .connection_final_timeouts
-                .load(CONNECTION_METRICS_ORDERING),
+                .counter_metrics
+                .load(ConnectionCounterMetricName::FinalTimeouts),
             open_connections: state.open_connections().cloned().collect(),
         }
     }
 
-    fn increment_connection_errors(&self) {
-        self.atomic_metrics
-            .connection_errors
-            .fetch_add(1, CONNECTION_METRICS_ORDERING);
-    }
-
-    fn increment_connection_initial_timeouts(&self) {
-        self.atomic_metrics
-            .connection_initial_timeouts
-            .fetch_add(1, CONNECTION_METRICS_ORDERING);
-    }
-
-    fn increment_connection_final_timeouts(&self) {
-        self.atomic_metrics
-            .connection_final_timeouts
-            .fetch_add(1, CONNECTION_METRICS_ORDERING);
+    fn increment_counter_metric(&self, name: ConnectionCounterMetricName) {
+        self.counter_metrics.increment(name);
     }
 }
 

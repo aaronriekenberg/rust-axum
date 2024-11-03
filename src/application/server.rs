@@ -21,7 +21,9 @@ use std::{convert::Infallible, net::SocketAddr, sync::Arc, time::Duration};
 
 use crate::{
     config::ServerConfiguration,
-    service::connection_service::{ConnectionGuard, ConnectionID, DynConnectionTrackerService},
+    service::connection_service::{
+        ConnectionCounterMetricName, ConnectionGuard, ConnectionID, DynConnectionTrackerService,
+    },
 };
 
 pub async fn run(
@@ -140,7 +142,7 @@ impl Connection {
                         Ok(()) => debug!("after polling conn, no error"),
                         Err(e) => {
                             warn!("error serving connection: {:?}", e);
-                            self.connection_guard.increment_connection_errors();
+                            self.connection_guard.increment_counter_metric(ConnectionCounterMetricName::Errors);
                         },
                     };
                     break;
@@ -149,9 +151,9 @@ impl Connection {
                     debug!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
                     hyper_conn.as_mut().graceful_shutdown();
                     if iter == 0 {
-                        self.connection_guard.increment_connection_initial_timeouts();
+                        self.connection_guard.increment_counter_metric(ConnectionCounterMetricName::InitialTimeouts);
                     } else {
-                        self.connection_guard.increment_connection_final_timeouts();
+                        self.connection_guard.increment_counter_metric(ConnectionCounterMetricName::FinalTimeouts);
                     }
                 }
             }

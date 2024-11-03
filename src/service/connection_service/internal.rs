@@ -8,7 +8,10 @@ use std::{
     sync::{atomic::AtomicUsize, Arc},
 };
 
-use super::{ConnectionGuard, ConnectionID, ConnectionInfo, ConnectionTrackerServiceImpl};
+use super::{
+    ConnectionCounterMetricName, ConnectionGuard, ConnectionID, ConnectionInfo,
+    ConnectionTrackerServiceImpl, CONNECTION_METRICS_ORDERING,
+};
 
 #[derive(Default)]
 struct ConnectionTrackerMetrics {
@@ -41,10 +44,27 @@ impl ConnectionTrackerMetrics {
     }
 }
 #[derive(Default)]
-pub struct AtomicConnectionTrackerMetrics {
-    pub connection_errors: AtomicUsize,
-    pub connection_initial_timeouts: AtomicUsize,
-    pub connection_final_timeouts: AtomicUsize,
+pub struct ConnectionCounterMetrics {
+    connection_errors: AtomicUsize,
+    connection_initial_timeouts: AtomicUsize,
+    connection_final_timeouts: AtomicUsize,
+}
+
+impl ConnectionCounterMetrics {
+    fn metric(&self, name: ConnectionCounterMetricName) -> &AtomicUsize {
+        match name {
+            ConnectionCounterMetricName::Errors => &self.connection_errors,
+            ConnectionCounterMetricName::InitialTimeouts => &self.connection_initial_timeouts,
+            ConnectionCounterMetricName::FinalTimeouts => &self.connection_final_timeouts,
+        }
+    }
+    pub fn increment(&self, name: ConnectionCounterMetricName) {
+        self.metric(name).fetch_add(1, CONNECTION_METRICS_ORDERING);
+    }
+
+    pub fn load(&self, name: ConnectionCounterMetricName) -> usize {
+        self.metric(name).load(CONNECTION_METRICS_ORDERING)
+    }
 }
 
 #[derive(Default)]
