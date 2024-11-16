@@ -98,10 +98,7 @@ impl ConnectionTrackerState {
 
         self.metrics.update_for_new_connection(new_num_connections);
 
-        debug!(
-            "add_connection new_num_connections = {}",
-            new_num_connections
-        );
+        debug!(new_num_connections, "add_connection");
 
         ConnectionGuard::new(connection_id, num_requests, connection_tracker_service)
     }
@@ -112,8 +109,8 @@ impl ConnectionTrackerState {
         }
 
         debug!(
-            "remove_connection id_to_connection_info.len = {}",
-            self.id_to_connection_info.len()
+            id_to_connection_info.len = self.id_to_connection_info.len(),
+            "remove_connection"
         );
     }
 

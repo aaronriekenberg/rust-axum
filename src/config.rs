@@ -52,7 +52,7 @@ pub struct Configuration {
 static CONFIGURATION_INSTANCE: OnceCell<Configuration> = OnceCell::const_new();
 
 pub async fn read_configuration(config_file: String) -> anyhow::Result<()> {
-    debug!("reading '{}'", config_file);
+    debug!(config_file, "begin read_configuration");
 
     let mut file = File::open(&config_file)
         .await
@@ -70,7 +70,7 @@ pub async fn read_configuration(config_file: String) -> anyhow::Result<()> {
     let configuration: Configuration = ::toml::from_str(&file_contents_string)
         .with_context(|| format!("error unmarshalling '{}'", config_file))?;
 
-    debug!("configuration\n{:#?}", configuration);
+    debug!(?configuration, "read configuration");
 
     CONFIGURATION_INSTANCE
         .set(configuration)

@@ -41,8 +41,8 @@ pub async fn run(
     ];
 
     debug!(
-        "connection_timeout_durations = {:?} tcp_nodelay = {}",
-        connection_timeout_durations, server_configuration.connection.tcp_nodelay
+        ?connection_timeout_durations,
+        server_configuration.connection.tcp_nodelay, "begin run"
     );
 
     loop {
@@ -95,7 +95,7 @@ async fn create_listener(
         )
     })?;
 
-    info!("listening on tcp {:?}", local_addr);
+    info!(?local_addr, "created tcp listener");
 
     Ok(tcp_listener)
 }
@@ -119,7 +119,7 @@ impl Connection {
         )
     )]
     async fn run(self) {
-        debug!("begin Connection::run remote_addr = {:?}", self.remote_addr);
+        debug!(?self.remote_addr, "begin Connection::run");
 
         let socket = TokioIo::new(self.tcp_stream);
 
@@ -137,20 +137,20 @@ impl Connection {
         tokio::pin!(hyper_conn);
 
         for (iter, sleep_duration) in self.connection_timeout_durations.iter().enumerate() {
-            debug!("iter = {} sleep_duration = {:?}", iter, sleep_duration);
+            debug!(iter, ?sleep_duration, "begin timeout loop iteration");
             tokio::select! {
                 res = hyper_conn.as_mut() => {
                     match res {
                         Ok(()) => debug!("after polling conn, no error"),
-                        Err(e) => {
-                            warn!("error serving connection: {:?}", e);
+                        Err(error) => {
+                            warn!(?error, "error serving connection");
                             self.connection_guard.increment_counter_metric(ConnectionCounterMetricName::Errors);
                         },
                     };
                     break;
                 }
                 _ = tokio::time::sleep(*sleep_duration) => {
-                    debug!("iter = {} got timeout_interval, calling conn.graceful_shutdown", iter);
+                    debug!(iter , "got timeout_interval, calling conn.graceful_shutdown");
                     hyper_conn.as_mut().graceful_shutdown();
                     if iter == 0 {
                         self.connection_guard.increment_counter_metric(ConnectionCounterMetricName::InitialTimeouts);
@@ -162,8 +162,8 @@ impl Connection {
         }
 
         debug!(
-            "end Connection::run num requests = {}",
-            self.connection_guard.num_requests(),
+            requests = self.connection_guard.num_requests(),
+            "end Connection::run",
         );
     }
 }
@@ -175,7 +175,7 @@ fn unwrap_infallible<T>(result: Result<T, Infallible>) -> T {
 
 impl connect_info::Connected<ConnectionID> for ConnectionID {
     fn connect_info(id: ConnectionID) -> Self {
-        debug!("in connect_info id = {id:?}");
+        debug!(?id, "in connect_info::Connected");
         id
     }
 }

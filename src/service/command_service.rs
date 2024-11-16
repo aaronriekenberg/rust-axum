@@ -70,13 +70,13 @@ impl CommandsServiceImpl {
     async fn acquire_semaphore(&self) -> Result<SemaphorePermit<'_>, RunCommandError> {
         let result = tokio::time::timeout(self.semapore_acquire_timeout, self.semapore.acquire())
             .await
-            .map_err(|e| {
-                warn!("acquire_semapore timeout error: {}", e);
+            .map_err(|error| {
+                warn!(?error, "acquire_semapore timeout error");
                 RunCommandError::SemaphoreAcquireError
             })?;
 
-        let permit = result.map_err(|e| {
-            warn!("acquire_semapore acquire error: {}", e);
+        let permit = result.map_err(|error| {
+            warn!(?error, "acquire_semapore acquire error");
             RunCommandError::SemaphoreAcquireError
         })?;
 

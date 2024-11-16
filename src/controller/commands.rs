@@ -26,7 +26,7 @@ pub async fn run_command(
     Path(id): Path<String>,
     State(commands_service): State<DynCommandsService>,
 ) -> Result<Json<RunCommandDTO>, RunCommandError> {
-    debug!("in run_command id = {}", id);
+    debug!(id, "run_command");
 
     let response = commands_service.run_command(&id).await?;
 

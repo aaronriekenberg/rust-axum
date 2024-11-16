@@ -9,9 +9,8 @@ use anyhow::Context;
 use tracing::{error, info};
 
 fn log_version_info() {
-    info!("Version Info:");
     for (key, value) in crate::service::version_service::verison_info() {
-        info!("{}: {}", key, value);
+        info!(key, value, "version info");
     }
 }
 
@@ -36,8 +35,8 @@ async fn try_main() -> anyhow::Result<()> {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    if let Err(err) = try_main().await {
-        error!("fatal error in main:\n{:#}", err);
+    if let Err(error) = try_main().await {
+        error!(?error, "fatal error in main");
         std::process::exit(1);
     }
 }
