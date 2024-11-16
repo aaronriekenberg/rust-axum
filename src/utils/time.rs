@@ -1,9 +1,7 @@
 use std::time::SystemTime;
 
-use jiff::Zoned;
-
 pub fn current_timestamp_string() -> String {
-    Zoned::now().to_string()
+    jiff::Zoned::now().to_string()
 }
 
 pub fn system_time_to_string(system_time: SystemTime) -> String {
