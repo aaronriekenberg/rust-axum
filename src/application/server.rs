@@ -137,7 +137,7 @@ impl Connection {
         tokio::pin!(hyper_conn);
 
         for (iter, sleep_duration) in self.connection_timeout_durations.iter().enumerate() {
-            debug!(iter, ?sleep_duration, "begin timeout loop iteration");
+            debug!(iter, ?sleep_duration, "begin timeout loop");
             tokio::select! {
                 res = hyper_conn.as_mut() => {
                     match res {
@@ -150,7 +150,7 @@ impl Connection {
                     break;
                 }
                 _ = tokio::time::sleep(*sleep_duration) => {
-                    debug!(iter , "got timeout_interval, calling conn.graceful_shutdown");
+                    debug!(iter, "got timeout_interval, calling conn.graceful_shutdown");
                     hyper_conn.as_mut().graceful_shutdown();
                     if iter == 0 {
                         self.connection_guard.increment_counter_metric(ConnectionCounterMetricName::InitialTimeouts);
