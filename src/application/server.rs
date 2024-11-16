@@ -100,12 +100,14 @@ async fn create_listener(
     Ok(tcp_listener)
 }
 
+type TowerService = AddExtension<Router, ConnectInfo<ConnectionID>>;
+
 struct Connection {
     connection_guard: ConnectionGuard,
     tcp_stream: TcpStream,
     remote_addr: SocketAddr,
     connection_timeout_durations: [Duration; 2],
-    tower_service: AddExtension<Router, ConnectInfo<ConnectionID>>,
+    tower_service: TowerService,
 }
 
 impl Connection {
