@@ -17,6 +17,9 @@ use crate::{
     utils::time::current_timestamp_string,
 };
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
+pub struct CommandID(pub String);
+
 #[async_trait]
 pub trait CommandsService {
     fn all_comamnds(&self, host: &str) -> Vec<&'static config::CommandInfo>;
@@ -24,7 +27,7 @@ pub trait CommandsService {
     async fn run_command(
         &self,
         host: &str,
-        command_id: &str,
+        command_id: CommandID,
     ) -> Result<RunCommandDTO, RunCommandError>;
 }
 
@@ -51,7 +54,7 @@ pub fn new_commands_service() -> DynCommandsService {
 struct CommandsServiceImpl {
     all_command_info: Vec<&'static config::CommandInfo>,
     external_command_info: Vec<&'static config::CommandInfo>,
-    id_to_command_info: HashMap<&'static str, &'static config::CommandInfo>,
+    id_to_command_info: HashMap<CommandID, &'static config::CommandInfo>,
     semapore: Semaphore,
     semapore_acquire_timeout: Duration,
 }
@@ -70,7 +73,7 @@ impl CommandsServiceImpl {
             id_to_command_info: command_configuration
                 .commands
                 .iter()
-                .map(|command_config| (command_config.id.as_ref(), command_config))
+                .map(|command_config| (CommandID(command_config.id.clone()), command_config))
                 .collect(),
             semapore: Semaphore::new(command_configuration.max_concurrent_commands),
             semapore_acquire_timeout: command_configuration.semaphore_acquire_timeout,
@@ -148,17 +151,18 @@ impl CommandsService for CommandsServiceImpl {
     async fn run_command(
         &self,
         host: &str,
-        command_id: &str,
+        command_id: CommandID,
     ) -> Result<RunCommandDTO, RunCommandError> {
         let command_info = self
             .id_to_command_info
-            .get(command_id)
+            .get(&command_id)
             .ok_or(RunCommandError::CommandNotFound)?;
 
         if command_info.internal_only && self.host_is_external(host) {
             warn!(
                 host,
-                command_id, "got external request for internal_only command",
+                ?command_id,
+                "got external request for internal_only command",
             );
             return Err(RunCommandError::CommandNotFound);
         }

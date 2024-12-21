@@ -5,7 +5,9 @@ use axum::{
     Json,
 };
 
-use crate::service::command_service::{DynCommandsService, RunCommandDTO, RunCommandError};
+use crate::service::command_service::{
+    CommandID, DynCommandsService, RunCommandDTO, RunCommandError,
+};
 
 use tracing::debug;
 
@@ -32,7 +34,7 @@ pub async fn run_command(
 ) -> Result<Json<RunCommandDTO>, RunCommandError> {
     debug!(id, "run_command");
 
-    let response = commands_service.run_command(&host, &id).await?;
+    let response = commands_service.run_command(&host, CommandID(id)).await?;
 
     Ok(Json(response))
 }
