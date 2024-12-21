@@ -9,7 +9,7 @@ edition = "2021"
 anyhow = "1.0"
 axum = { version = "0.7", features = ["http2"] }
 http-body-util = "0.1"
-hyper = { version = "1.0.0", features = ["full"] }
+hyper = { version = "1.5.0", features = ["full"] }
 hyper-util = { version = "0.1", features = ["full"] }
 humantime-serde = "1.1"
 jiff = "0.1"
