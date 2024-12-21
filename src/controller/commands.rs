@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Host, Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -18,17 +18,21 @@ impl IntoResponse for RunCommandError {
     }
 }
 
-pub async fn all_commands(State(commands_service): State<DynCommandsService>) -> impl IntoResponse {
-    Json(commands_service.all_comamnds())
+pub async fn all_commands(
+    Host(host): Host,
+    State(commands_service): State<DynCommandsService>,
+) -> impl IntoResponse {
+    Json(commands_service.all_comamnds(&host))
 }
 
 pub async fn run_command(
+    Host(host): Host,
     Path(id): Path<String>,
     State(commands_service): State<DynCommandsService>,
 ) -> Result<Json<RunCommandDTO>, RunCommandError> {
     debug!(id, "run_command");
 
-    let response = commands_service.run_command(&id).await?;
+    let response = commands_service.run_command(&host, &id).await?;
 
     Ok(Json(response))
 }

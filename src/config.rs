@@ -29,6 +29,8 @@ pub struct ServerConfiguration {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CommandInfo {
     pub id: String,
+    #[serde(default)]
+    pub internal_only: bool,
     pub description: String,
     pub command: String,
     #[serde(default)]

@@ -19,9 +19,13 @@ use crate::{
 
 #[async_trait]
 pub trait CommandsService {
-    fn all_comamnds(&self) -> Vec<&'static config::CommandInfo>;
+    fn all_comamnds(&self, host: &str) -> Vec<&'static config::CommandInfo>;
 
-    async fn run_command(&self, command_id: &str) -> Result<RunCommandDTO, RunCommandError>;
+    async fn run_command(
+        &self,
+        host: &str,
+        command_id: &str,
+    ) -> Result<RunCommandDTO, RunCommandError>;
 }
 
 pub type DynCommandsService = Arc<dyn CommandsService + Send + Sync>;
@@ -46,6 +50,7 @@ pub fn new_commands_service() -> DynCommandsService {
 
 struct CommandsServiceImpl {
     all_command_info: Vec<&'static config::CommandInfo>,
+    external_command_info: Vec<&'static config::CommandInfo>,
     id_to_command_info: HashMap<&'static str, &'static config::CommandInfo>,
     semapore: Semaphore,
     semapore_acquire_timeout: Duration,
@@ -57,6 +62,11 @@ impl CommandsServiceImpl {
 
         Arc::new(Self {
             all_command_info: command_configuration.commands.iter().collect(),
+            external_command_info: command_configuration
+                .commands
+                .iter()
+                .filter(|ci| !ci.internal_only)
+                .collect(),
             id_to_command_info: command_configuration
                 .commands
                 .iter()
@@ -65,6 +75,11 @@ impl CommandsServiceImpl {
             semapore: Semaphore::new(command_configuration.max_concurrent_commands),
             semapore_acquire_timeout: command_configuration.semaphore_acquire_timeout,
         })
+    }
+
+    fn host_is_external(&self, host: &str) -> bool {
+        // TODO: make configurable or use regex
+        host == "aaronr.digital" || host == "www.aaronr.digital"
     }
 
     async fn acquire_semaphore(&self) -> Result<SemaphorePermit<'_>, RunCommandError> {
@@ -122,15 +137,31 @@ impl CommandsServiceImpl {
 
 #[async_trait]
 impl CommandsService for CommandsServiceImpl {
-    fn all_comamnds(&self) -> Vec<&'static config::CommandInfo> {
-        self.all_command_info.clone()
+    fn all_comamnds(&self, host: &str) -> Vec<&'static config::CommandInfo> {
+        if self.host_is_external(host) {
+            self.external_command_info.clone()
+        } else {
+            self.all_command_info.clone()
+        }
     }
 
-    async fn run_command(&self, command_id: &str) -> Result<RunCommandDTO, RunCommandError> {
+    async fn run_command(
+        &self,
+        host: &str,
+        command_id: &str,
+    ) -> Result<RunCommandDTO, RunCommandError> {
         let command_info = self
             .id_to_command_info
             .get(command_id)
             .ok_or(RunCommandError::CommandNotFound)?;
+
+        if command_info.internal_only && self.host_is_external(host) {
+            warn!(
+                host,
+                command_id, "got external request for internal_only command",
+            );
+            return Err(RunCommandError::CommandNotFound);
+        }
 
         let permit = self.acquire_semaphore().await?;
 

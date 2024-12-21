@@ -8,7 +8,7 @@ connection = { max_lifetime = "5 minutes", graceful_shutdown_timeout = "15 secon
 max_concurrent_commands = 1
 semaphore_acquire_timeout = "200 msec"
 commands = [
-    { id = "sleep", description = "sleep", command = "/bin/sleep", args = [
+    { id = "sleep", internal_only = true, description = "sleep", command = "/bin/sleep", args = [
         "5",
     ] },
     { id = "vmstat", description = "vmstat", command = "/usr/bin/vmstat" },

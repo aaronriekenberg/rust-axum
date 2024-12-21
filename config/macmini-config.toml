@@ -27,14 +27,14 @@ commands = [
         "log",
         "-1",
     ] },
-    { id = "ip_addr", description = "ip addr", command = "/usr/sbin/ip", args = [
+    { id = "ip_addr", internal_only = true, description = "ip addr", command = "/usr/sbin/ip", args = [
         "addr",
     ] },
     { id = "lscpu", description = "lscpu", command = "/usr/bin/lscpu" },
     { id = "lscpu_e", description = "lscpu -e", command = "/usr/bin/lscpu", args = [
         "-e",
     ] },
-    { id = "netstat_an", description = "netstat -an", command = "/usr/bin/netstat", args = [
+    { id = "netstat_an", internal_only = true, description = "netstat -an", command = "/usr/bin/netstat", args = [
         "-a",
         "-n",
     ] },
