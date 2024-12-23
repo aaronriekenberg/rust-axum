@@ -11,6 +11,8 @@ use crate::service::command_service::{
 
 use tracing::debug;
 
+use super::host_is_external;
+
 impl IntoResponse for RunCommandError {
     fn into_response(self) -> Response {
         match self {
@@ -24,7 +26,8 @@ pub async fn all_commands(
     Host(host): Host,
     State(commands_service): State<DynCommandsService>,
 ) -> impl IntoResponse {
-    Json(commands_service.all_comamnds(&host))
+    let external_request = host_is_external(&host);
+    Json(commands_service.all_comamnds(external_request))
 }
 
 pub async fn run_command(
@@ -32,9 +35,13 @@ pub async fn run_command(
     Path(id): Path<String>,
     State(commands_service): State<DynCommandsService>,
 ) -> Result<Json<RunCommandDTO>, RunCommandError> {
-    debug!(id, "run_command");
+    debug!(host, id, "run_command");
 
-    let response = commands_service.run_command(&host, CommandID(id)).await?;
+    let external_request = host_is_external(&host);
+
+    let response = commands_service
+        .run_command(external_request, CommandID(id))
+        .await?;
 
     Ok(Json(response))
 }

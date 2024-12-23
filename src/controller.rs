@@ -43,3 +43,8 @@ pub fn create_routes(
         create_api_routes(commands_service, connection_tracker_service),
     )
 }
+
+fn host_is_external(host: &str) -> bool {
+    // TODO: make configurable or use regex
+    host == "aaronr.digital" || host == "www.aaronr.digital"
+}

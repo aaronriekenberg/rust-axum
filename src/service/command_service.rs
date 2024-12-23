@@ -22,11 +22,11 @@ pub struct CommandID(pub String);
 
 #[async_trait]
 pub trait CommandsService {
-    fn all_comamnds(&self, host: &str) -> Vec<&'static config::CommandInfo>;
+    fn all_comamnds(&self, external_request: bool) -> Vec<&'static config::CommandInfo>;
 
     async fn run_command(
         &self,
-        host: &str,
+        external_request: bool,
         command_id: CommandID,
     ) -> Result<RunCommandDTO, RunCommandError>;
 }
@@ -78,11 +78,6 @@ impl CommandsServiceImpl {
             semapore: Semaphore::new(command_configuration.max_concurrent_commands),
             semapore_acquire_timeout: command_configuration.semaphore_acquire_timeout,
         })
-    }
-
-    fn host_is_external(&self, host: &str) -> bool {
-        // TODO: make configurable or use regex
-        host == "aaronr.digital" || host == "www.aaronr.digital"
     }
 
     async fn acquire_semaphore(&self) -> Result<SemaphorePermit<'_>, RunCommandError> {
@@ -140,8 +135,8 @@ impl CommandsServiceImpl {
 
 #[async_trait]
 impl CommandsService for CommandsServiceImpl {
-    fn all_comamnds(&self, host: &str) -> Vec<&'static config::CommandInfo> {
-        if self.host_is_external(host) {
+    fn all_comamnds(&self, external_request: bool) -> Vec<&'static config::CommandInfo> {
+        if external_request {
             self.external_command_info.clone()
         } else {
             self.all_command_info.clone()
@@ -150,7 +145,7 @@ impl CommandsService for CommandsServiceImpl {
 
     async fn run_command(
         &self,
-        host: &str,
+        external_request: bool,
         command_id: CommandID,
     ) -> Result<RunCommandDTO, RunCommandError> {
         let command_info = self
@@ -158,9 +153,8 @@ impl CommandsService for CommandsServiceImpl {
             .get(&command_id)
             .ok_or(RunCommandError::CommandNotFound)?;
 
-        if command_info.internal_only && self.host_is_external(host) {
+        if command_info.internal_only && external_request {
             warn!(
-                host,
                 ?command_id,
                 "got external request for internal_only command",
             );
