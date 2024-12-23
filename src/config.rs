@@ -23,6 +23,7 @@ pub struct ServerConfiguration {
     #[serde(with = "humantime_serde")]
     pub request_timeout: Duration,
     pub context: String,
+    pub external_hosts: Vec<String>,
     pub connection: ServerConnectionConfiguration,
 }
 

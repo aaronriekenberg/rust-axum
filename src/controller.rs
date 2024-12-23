@@ -45,6 +45,9 @@ pub fn create_routes(
 }
 
 fn host_is_external(host: &str) -> bool {
-    // TODO: make configurable or use regex
-    host == "aaronr.digital" || host == "www.aaronr.digital"
+    config::instance()
+        .server_configuration
+        .external_hosts
+        .iter()
+        .any(|external_host| host == external_host)
 }
