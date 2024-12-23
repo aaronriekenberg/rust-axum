@@ -22,7 +22,7 @@ pub struct CommandID(pub String);
 
 #[async_trait]
 pub trait CommandsService {
-    fn all_comamnds(&self, external_request: bool) -> Vec<&'static config::CommandInfo>;
+    fn all_commands(&self, external_request: bool) -> Vec<&'static config::CommandInfo>;
 
     async fn run_command(
         &self,
@@ -135,7 +135,7 @@ impl CommandsServiceImpl {
 
 #[async_trait]
 impl CommandsService for CommandsServiceImpl {
-    fn all_comamnds(&self, external_request: bool) -> Vec<&'static config::CommandInfo> {
+    fn all_commands(&self, external_request: bool) -> Vec<&'static config::CommandInfo> {
         if external_request {
             self.external_command_info.clone()
         } else {

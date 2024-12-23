@@ -27,7 +27,7 @@ pub async fn all_commands(
     State(commands_service): State<DynCommandsService>,
 ) -> impl IntoResponse {
     let external_request = host_is_external(&host);
-    Json(commands_service.all_comamnds(external_request))
+    Json(commands_service.all_commands(external_request))
 }
 
 pub async fn run_command(
