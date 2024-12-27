@@ -34,22 +34,22 @@ pub type DynCommandsService = Arc<dyn CommandsService + Send + Sync>;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct CommandInfoDTO {
-    pub id: String,
+    pub id: &'static String,
     #[serde(skip_serializing)]
     pub internal_only: bool,
-    pub description: String,
-    pub command: String,
-    pub args: Vec<String>,
+    pub description: &'static String,
+    pub command: &'static String,
+    pub args: &'static Vec<String>,
 }
 
-impl From<&config::CommandInfo> for CommandInfoDTO {
-    fn from(command_info: &config::CommandInfo) -> Self {
+impl From<&'static config::CommandInfo> for CommandInfoDTO {
+    fn from(command_info: &'static config::CommandInfo) -> Self {
         Self {
-            id: command_info.id.clone(),
+            id: &command_info.id,
             internal_only: command_info.internal_only,
-            description: command_info.description.clone(),
-            command: command_info.command.clone(),
-            args: command_info.args.clone(),
+            description: &command_info.description,
+            command: &command_info.command,
+            args: &command_info.args,
         }
     }
 }
@@ -124,8 +124,8 @@ impl CommandsServiceImpl {
         permit: SemaphorePermit<'_>,
     ) -> RunCommandDTO {
         let command_start_time = Instant::now();
-        let command_result = Command::new(&command_info.command)
-            .args(&command_info.args)
+        let command_result = Command::new(command_info.command)
+            .args(command_info.args)
             .kill_on_drop(true)
             .stdin(Stdio::null())
             .output()
