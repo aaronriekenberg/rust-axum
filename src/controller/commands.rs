@@ -30,7 +30,7 @@ pub async fn all_commands(
     Json(commands_service.all_commands(external_request))
 }
 
-pub async fn run_command(
+pub async fn run_command<'a>(
     Host(host): Host,
     Path(id): Path<String>,
     State(commands_service): State<DynCommandsService>,
