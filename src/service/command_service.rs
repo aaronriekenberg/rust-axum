@@ -70,8 +70,8 @@ pub fn new_commands_service() -> DynCommandsService {
 }
 
 struct CommandsServiceImpl {
-    all_command_info_dtos: Vec<CommandInfoDTO>,
-    external_command_info_dtos: Vec<CommandInfoDTO>,
+    all_command_info: Vec<CommandInfoDTO>,
+    external_command_info: Vec<CommandInfoDTO>,
     id_to_command_info: HashMap<CommandID, &'static config::CommandInfo>,
     semapore: Semaphore,
     semapore_acquire_timeout: Duration,
@@ -82,8 +82,8 @@ impl CommandsServiceImpl {
         let command_configuration = &config::instance().command_configuration;
 
         Arc::new(Self {
-            all_command_info_dtos: command_configuration.commands.iter().map_into().collect(),
-            external_command_info_dtos: command_configuration
+            all_command_info: command_configuration.commands.iter().map_into().collect(),
+            external_command_info: command_configuration
                 .commands
                 .iter()
                 .filter(|ci| !ci.internal_only)
@@ -156,9 +156,9 @@ impl CommandsServiceImpl {
 impl CommandsService for CommandsServiceImpl {
     fn all_commands(&self, external_request: bool) -> Vec<CommandInfoDTO> {
         if external_request {
-            self.external_command_info_dtos.clone()
+            self.external_command_info.clone()
         } else {
-            self.all_command_info_dtos.clone()
+            self.all_command_info.clone()
         }
     }
 
