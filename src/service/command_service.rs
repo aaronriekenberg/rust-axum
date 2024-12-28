@@ -35,8 +35,6 @@ pub type DynCommandsService = Arc<dyn CommandsService + Send + Sync>;
 #[derive(Clone, Debug, Serialize)]
 pub struct CommandInfoDTO {
     pub id: &'static String,
-    #[serde(skip_serializing)]
-    pub internal_only: bool,
     pub description: &'static String,
     pub command: &'static String,
     pub args: &'static Vec<String>,
@@ -46,7 +44,6 @@ impl From<&'static config::CommandInfo> for CommandInfoDTO {
     fn from(command_info: &'static config::CommandInfo) -> Self {
         Self {
             id: &command_info.id,
-            internal_only: command_info.internal_only,
             description: &command_info.description,
             command: &command_info.command,
             args: &command_info.args,
@@ -73,9 +70,9 @@ pub fn new_commands_service() -> DynCommandsService {
 }
 
 struct CommandsServiceImpl {
-    all_command_info: Vec<CommandInfoDTO>,
-    external_command_info: Vec<CommandInfoDTO>,
-    id_to_command_info: HashMap<CommandID, CommandInfoDTO>,
+    all_command_info_dtos: Vec<CommandInfoDTO>,
+    external_command_info_dtos: Vec<CommandInfoDTO>,
+    id_to_command_info: HashMap<CommandID, &'static config::CommandInfo>,
     semapore: Semaphore,
     semapore_acquire_timeout: Duration,
 }
@@ -85,8 +82,8 @@ impl CommandsServiceImpl {
         let command_configuration = &config::instance().command_configuration;
 
         Arc::new(Self {
-            all_command_info: command_configuration.commands.iter().map_into().collect(),
-            external_command_info: command_configuration
+            all_command_info_dtos: command_configuration.commands.iter().map_into().collect(),
+            external_command_info_dtos: command_configuration
                 .commands
                 .iter()
                 .filter(|ci| !ci.internal_only)
@@ -95,7 +92,7 @@ impl CommandsServiceImpl {
             id_to_command_info: command_configuration
                 .commands
                 .iter()
-                .map(|command_config| (CommandID(command_config.id.clone()), command_config.into()))
+                .map(|command_config| (CommandID(command_config.id.clone()), command_config))
                 .collect(),
             semapore: Semaphore::new(command_configuration.max_concurrent_commands),
             semapore_acquire_timeout: command_configuration.semaphore_acquire_timeout,
@@ -120,12 +117,12 @@ impl CommandsServiceImpl {
 
     async fn internal_run_command<'a>(
         &self,
-        command_info: &CommandInfoDTO,
+        command_info: &'static config::CommandInfo,
         permit: SemaphorePermit<'_>,
     ) -> RunCommandDTO {
         let command_start_time = Instant::now();
-        let command_result = Command::new(command_info.command)
-            .args(command_info.args)
+        let command_result = Command::new(&command_info.command)
+            .args(&command_info.args)
             .kill_on_drop(true)
             .stdin(Stdio::null())
             .output()
@@ -137,7 +134,7 @@ impl CommandsServiceImpl {
         RunCommandDTO {
             now: current_timestamp_string(),
             command_duration_ms: command_duration.as_millis(),
-            command_info: command_info.clone(),
+            command_info: command_info.into(),
             command_output: match command_result {
                 Err(err) => {
                     format!("error running command {}", err)
@@ -159,9 +156,9 @@ impl CommandsServiceImpl {
 impl CommandsService for CommandsServiceImpl {
     fn all_commands(&self, external_request: bool) -> Vec<CommandInfoDTO> {
         if external_request {
-            self.external_command_info.clone()
+            self.external_command_info_dtos.clone()
         } else {
-            self.all_command_info.clone()
+            self.all_command_info_dtos.clone()
         }
     }
 
