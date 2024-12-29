@@ -115,7 +115,7 @@ impl CommandsServiceImpl {
         Ok(permit)
     }
 
-    async fn internal_run_command<'a>(
+    async fn internal_run_command(
         &self,
         command_info: &'static config::CommandInfo,
         permit: SemaphorePermit<'_>,
