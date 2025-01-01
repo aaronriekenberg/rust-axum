@@ -1,9 +1,11 @@
 use axum::{
-    extract::{Host, Path, State},
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
+
+use axum_extra::extract::Host;
 
 use crate::service::command_service::{
     CommandID, DynCommandsService, RunCommandDTO, RunCommandError,

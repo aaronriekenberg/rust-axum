@@ -19,7 +19,7 @@ fn create_api_routes(
 ) -> Router {
     let command_routes = Router::new()
         .route("/", get(commands::all_commands))
-        .route("/:id", get(commands::run_command))
+        .route("/{id}", get(commands::run_command))
         .with_state(commands_service);
 
     let connection_routes = Router::new()

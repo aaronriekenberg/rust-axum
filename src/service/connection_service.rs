@@ -1,6 +1,6 @@
 mod internal;
 
-use axum::async_trait;
+use async_trait::async_trait;
 
 use tokio::{
     sync::RwLock,
