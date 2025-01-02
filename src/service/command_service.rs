@@ -1,10 +1,8 @@
-use async_trait::async_trait;
-
 use itertools::Itertools;
 
 use serde::Serialize;
 
-use std::{collections::HashMap, process::Stdio, sync::Arc};
+use std::{collections::HashMap, future::Future, process::Stdio, sync::Arc};
 
 use tokio::{
     process::Command,
@@ -19,18 +17,15 @@ use crate::{config, utils::time::current_timestamp_string};
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct CommandID(pub String);
 
-#[async_trait]
-pub trait CommandsService {
+pub trait CommandsService: Send + Sync + 'static {
     fn all_commands(&self, external_request: bool) -> Vec<CommandInfoDTO>;
 
-    async fn run_command(
+    fn run_command(
         &self,
         external_request: bool,
         command_id: CommandID,
-    ) -> Result<RunCommandDTO, RunCommandError>;
+    ) -> impl Future<Output = Result<RunCommandDTO, RunCommandError>> + Send;
 }
-
-pub type DynCommandsService = Arc<dyn CommandsService + Send + Sync>;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct CommandInfoDTO {
@@ -65,7 +60,7 @@ pub enum RunCommandError {
     SemaphoreAcquireError,
 }
 
-pub fn new_commands_service() -> DynCommandsService {
+pub fn new_commands_service() -> Arc<impl CommandsService> {
     CommandsServiceImpl::new()
 }
 
@@ -152,7 +147,6 @@ impl CommandsServiceImpl {
     }
 }
 
-#[async_trait]
 impl CommandsService for CommandsServiceImpl {
     fn all_commands(&self, external_request: bool) -> Vec<CommandInfoDTO> {
         if external_request {

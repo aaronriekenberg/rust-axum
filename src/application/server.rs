@@ -22,14 +22,14 @@ use std::{convert::Infallible, net::SocketAddr, sync::Arc, time::Duration};
 use crate::{
     config::ServerConfiguration,
     service::connection_service::{
-        ConnectionCounterMetricName, ConnectionGuard, ConnectionID, DynConnectionTrackerService,
+        ConnectionCounterMetricName, ConnectionGuard, ConnectionID, ConnectionTrackerService,
     },
 };
 
 pub async fn run(
     routes: Router,
     server_configuration: &ServerConfiguration,
-    connection_tracker_service: DynConnectionTrackerService,
+    connection_tracker_service: Arc<impl ConnectionTrackerService>,
 ) -> anyhow::Result<()> {
     let listener = create_listener(server_configuration).await?;
 

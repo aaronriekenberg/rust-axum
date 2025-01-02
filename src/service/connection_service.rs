@@ -1,7 +1,5 @@
 mod internal;
 
-use async_trait::async_trait;
-
 use tokio::{
     sync::RwLock,
     time::{Duration, Instant},
@@ -11,6 +9,7 @@ use serde::Serialize;
 
 use std::{
     collections::BTreeMap,
+    future::Future,
     sync::{atomic::AtomicUsize, Arc},
     time::SystemTime,
 };
@@ -107,15 +106,15 @@ impl Drop for ConnectionGuard {
     }
 }
 
-#[async_trait]
-pub trait ConnectionTrackerService {
-    async fn add_connection(self: Arc<Self>) -> ConnectionGuard;
-    async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO;
+pub trait ConnectionTrackerService: Send + Sync + 'static {
+    fn add_connection(self: Arc<Self>) -> impl Future<Output = ConnectionGuard> + Send;
+
+    fn state_snapshot_dto(
+        self: Arc<Self>,
+    ) -> impl Future<Output = ConnectionTrackerStateSnapshotDTO> + Send;
 }
 
-pub type DynConnectionTrackerService = Arc<dyn ConnectionTrackerService + Send + Sync>;
-
-pub fn new_connection_tracker_service() -> DynConnectionTrackerService {
+pub fn new_connection_tracker_service() -> Arc<impl ConnectionTrackerService> {
     ConnectionTrackerServiceImpl::new()
 }
 
@@ -164,7 +163,6 @@ impl ConnectionTrackerServiceImpl {
     }
 }
 
-#[async_trait]
 impl ConnectionTrackerService for ConnectionTrackerServiceImpl {
     async fn add_connection(self: Arc<Self>) -> ConnectionGuard {
         let mut state = self.state.write().await;

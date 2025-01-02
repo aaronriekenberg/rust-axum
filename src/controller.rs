@@ -6,16 +6,16 @@ mod version_info;
 
 use axum::{routing::get, Router};
 
+use std::sync::Arc;
+
 use crate::{
     config,
-    service::{
-        command_service::DynCommandsService, connection_service::DynConnectionTrackerService,
-    },
+    service::{command_service::CommandsService, connection_service::ConnectionTrackerService},
 };
 
 fn create_api_routes(
-    commands_service: DynCommandsService,
-    connection_tracker_service: DynConnectionTrackerService,
+    commands_service: Arc<impl CommandsService>,
+    connection_tracker_service: Arc<impl ConnectionTrackerService>,
 ) -> Router {
     let command_routes = Router::new()
         .route("/", get(commands::all_commands))
@@ -35,8 +35,8 @@ fn create_api_routes(
 
 pub fn create_routes(
     server_configuration: &config::ServerConfiguration,
-    commands_service: DynCommandsService,
-    connection_tracker_service: DynConnectionTrackerService,
+    commands_service: Arc<impl CommandsService>,
+    connection_tracker_service: Arc<impl ConnectionTrackerService>,
 ) -> Router {
     Router::new().route("/health", get(health::health)).nest(
         &server_configuration.context,

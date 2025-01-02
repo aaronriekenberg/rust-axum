@@ -7,9 +7,9 @@ use axum::{
 
 use axum_extra::extract::Host;
 
-use crate::service::command_service::{
-    CommandID, DynCommandsService, RunCommandDTO, RunCommandError,
-};
+use std::sync::Arc;
+
+use crate::service::command_service::{CommandID, CommandsService, RunCommandDTO, RunCommandError};
 
 use tracing::debug;
 
@@ -26,16 +26,16 @@ impl IntoResponse for RunCommandError {
 
 pub async fn all_commands(
     Host(host): Host,
-    State(commands_service): State<DynCommandsService>,
+    State(commands_service): State<Arc<impl CommandsService>>,
 ) -> impl IntoResponse {
     let external_request = host_is_external(&host);
     Json(commands_service.all_commands(external_request))
 }
 
-pub async fn run_command<'a>(
+pub async fn run_command(
     Host(host): Host,
     Path(id): Path<String>,
-    State(commands_service): State<DynCommandsService>,
+    State(commands_service): State<Arc<impl CommandsService>>,
 ) -> Result<Json<RunCommandDTO>, RunCommandError> {
     debug!(host, id, "run_command");
 
