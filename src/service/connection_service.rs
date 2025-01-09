@@ -9,7 +9,6 @@ use serde::Serialize;
 
 use std::{
     collections::BTreeMap,
-    future::Future,
     sync::{atomic::AtomicUsize, Arc},
     time::SystemTime,
 };
@@ -106,12 +105,11 @@ impl Drop for ConnectionGuard {
     }
 }
 
+#[trait_variant::make(Send)]
 pub trait ConnectionTrackerService: Send + Sync + 'static {
-    fn add_connection(self: Arc<Self>) -> impl Future<Output = ConnectionGuard> + Send;
+    async fn add_connection(self: Arc<Self>) -> ConnectionGuard;
 
-    fn state_snapshot_dto(
-        self: Arc<Self>,
-    ) -> impl Future<Output = ConnectionTrackerStateSnapshotDTO> + Send;
+    async fn state_snapshot_dto(self: Arc<Self>) -> ConnectionTrackerStateSnapshotDTO;
 }
 
 pub fn new_connection_tracker_service() -> Arc<impl ConnectionTrackerService> {
