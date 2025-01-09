@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use serde::Serialize;
 
-use std::{collections::HashMap, future::Future, process::Stdio, sync::Arc};
+use std::{collections::HashMap, process::Stdio, sync::Arc};
 
 use tokio::{
     process::Command,
@@ -17,14 +17,15 @@ use crate::{config, utils::time::current_timestamp_string};
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct CommandID(pub String);
 
+#[trait_variant::make(Send)]
 pub trait CommandsService: Send + Sync + 'static {
     fn all_commands(&self, external_request: bool) -> Vec<CommandInfoDTO>;
 
-    fn run_command(
+    async fn run_command(
         &self,
         external_request: bool,
         command_id: CommandID,
-    ) -> impl Future<Output = Result<RunCommandDTO, RunCommandError>> + Send;
+    ) -> Result<RunCommandDTO, RunCommandError>;
 }
 
 #[derive(Clone, Debug, Serialize)]
