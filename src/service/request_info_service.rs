@@ -23,6 +23,27 @@ pub struct RequestInfoDTO {
     request_headers: BTreeMap<String, String>,
 }
 
+fn build_request_headers(request: &Request<Body>) -> BTreeMap<String, String> {
+    let mut headers_map: BTreeMap<String, String> = BTreeMap::new();
+
+    for (key, value) in request.headers() {
+        let key_str = key.as_str();
+        let value_str = value.to_str().unwrap_or("[Unknown]");
+
+        match headers_map.get_mut(key_str) {
+            None => {
+                headers_map.insert(key_str.to_owned(), value_str.to_owned());
+            }
+            Some(current_value) => {
+                current_value.push_str("; ");
+                current_value.push_str(value_str);
+            }
+        };
+    }
+
+    headers_map
+}
+
 pub fn request_info(
     connection_id: ConnectionID,
     original_uri: Uri,
@@ -44,15 +65,6 @@ pub fn request_info(
             version,
             original_uri: original_uri.to_string(),
         },
-        request_headers: request
-            .headers()
-            .iter()
-            .map(|(key, value)| {
-                (
-                    key.as_str().to_owned(),
-                    value.to_str().unwrap_or("[Unknown]").to_owned(),
-                )
-            })
-            .collect(),
+        request_headers: build_request_headers(&request),
     }
 }
