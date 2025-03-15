@@ -3,9 +3,9 @@ mod server;
 use tower::ServiceBuilder;
 
 use tower_http::{
+    ServiceBuilderExt,
     timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
-    ServiceBuilderExt,
 };
 
 use std::sync::Arc;

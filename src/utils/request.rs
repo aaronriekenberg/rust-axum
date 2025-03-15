@@ -3,8 +3,8 @@ use axum::http::Request;
 use tower_http::request_id::{MakeRequestId, RequestId};
 
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
     Arc,
+    atomic::{AtomicU64, Ordering},
 };
 
 // A `MakeRequestId` that increments an atomic counter

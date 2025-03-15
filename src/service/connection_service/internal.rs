@@ -5,12 +5,12 @@ use tracing::debug;
 use std::{
     cmp,
     collections::HashMap,
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{Arc, atomic::AtomicUsize},
 };
 
 use super::{
-    ConnectionCounterMetricName, ConnectionGuard, ConnectionID, ConnectionInfo,
-    ConnectionTrackerServiceImpl, CONNECTION_METRICS_ORDERING,
+    CONNECTION_METRICS_ORDERING, ConnectionCounterMetricName, ConnectionGuard, ConnectionID,
+    ConnectionInfo, ConnectionTrackerServiceImpl,
 };
 
 #[derive(Default)]

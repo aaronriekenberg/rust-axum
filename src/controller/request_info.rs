@@ -1,9 +1,9 @@
 use axum::{
+    Json,
     body::Body,
     extract::{ConnectInfo, OriginalUri},
     http::Request,
     response::IntoResponse,
-    Json,
 };
 
 use crate::service::{connection_service::ConnectionID, request_info_service};

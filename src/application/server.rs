@@ -1,9 +1,9 @@
 use anyhow::Context;
 
 use axum::{
-    extract::{connect_info, ConnectInfo},
-    middleware::AddExtension,
     Router,
+    extract::{ConnectInfo, connect_info},
+    middleware::AddExtension,
 };
 
 use hyper_util::{

@@ -4,7 +4,7 @@ mod health;
 mod request_info;
 mod version_info;
 
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 
 use std::sync::Arc;
 

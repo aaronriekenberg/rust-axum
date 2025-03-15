@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use std::{
     collections::BTreeMap,
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{Arc, atomic::AtomicUsize},
     time::SystemTime,
 };
 
