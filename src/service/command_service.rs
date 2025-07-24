@@ -133,7 +133,7 @@ impl CommandsServiceImpl {
             command_info: command_info.into(),
             command_output: match command_result {
                 Err(err) => {
-                    format!("error running command {}", err)
+                    format!("error running command {err}")
                 }
                 Ok(command_output) => {
                     let mut combined_output = String::with_capacity(

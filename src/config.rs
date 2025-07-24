@@ -59,19 +59,19 @@ pub async fn read_configuration(config_file: String) -> anyhow::Result<()> {
 
     let mut file = File::open(&config_file)
         .await
-        .with_context(|| format!("error opening '{}'", config_file))?;
+        .with_context(|| format!("error opening '{config_file}'"))?;
 
     let mut file_contents = Vec::new();
 
     file.read_to_end(&mut file_contents)
         .await
-        .with_context(|| format!("error reading '{}'", config_file))?;
+        .with_context(|| format!("error reading '{config_file}'"))?;
 
     let file_contents_string = String::from_utf8(file_contents)
-        .with_context(|| format!("String::from_utf8 error reading '{}'", config_file))?;
+        .with_context(|| format!("String::from_utf8 error reading '{config_file}'"))?;
 
     let configuration: Configuration = ::toml::from_str(&file_contents_string)
-        .with_context(|| format!("error unmarshalling '{}'", config_file))?;
+        .with_context(|| format!("error unmarshalling '{config_file}'"))?;
 
     debug!(?configuration, "read configuration");
 
