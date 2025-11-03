@@ -8,7 +8,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0"
 axum = { version = "0.8", features = ["http2"] }
-axum-extra = "0.10"
+axum-extra = "0.12"
 http-body-util = "0.1"
 hyper = { version = "1.5.0", features = ["full"] }
 hyper-util = { version = "0.1", features = ["full"] }
